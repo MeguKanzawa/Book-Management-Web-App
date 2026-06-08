@@ -1,0 +1,11 @@
+<% content_for :title, "New book series" %>
+
+<h1>New book series</h1>
+
+<%= render "form", book_series: @book_series %>
+
+<br>
+
+<div>
+  <%= link_to "Back to book series", book_series_index_path %>
+</div>

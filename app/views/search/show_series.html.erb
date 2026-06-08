@@ -1,0 +1,56 @@
+<%# app/views/search/show_series.html.erb %>
+<div class="min-h-screen bg-slate-50 pb-24">
+  
+  <%# Navigation Header %>
+  <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-4 shadow-sm flex items-center justify-between">
+    <%= link_to "← Back", :back, class: "text-slate-600 hover:text-slate-900 text-sm font-medium" %>
+    <h1 class="text-base font-bold text-slate-800 truncate max-w-[200px]"><%= @series_name %></h1>
+    <div class="w-10"></div> <%# Spacer %>
+  </div>
+
+  <div class="max-w-md mx-auto px-4 mt-6">
+    <div class="mb-4">
+      <h2 class="text-xl font-bold text-slate-900">Track Volumes</h2>
+      <p class="text-sm text-slate-500">Check the volumes you currently own or want to track.</p>
+    </div>
+
+    <%# Form to save selected volumes to your tracking database %>
+    <%= form_with url: books_path, method: :post, local: true do |f| %>
+      <%= hidden_field_tag :series_name, @series_name %>
+
+      <div class="grid grid-cols-3 gap-3">
+        <% @volumes.each_with_index do |volume, index| %>
+          <label class="relative bg-white border border-slate-200 rounded-xl p-2 flex flex-col items-center justify-between text-center cursor-pointer select-none hover:border-indigo-300 transition-all shadow-sm">
+            
+            <%# Checkbox Input Hidden/Styled %>
+            <div class="absolute top-2 right-2 z-10">
+              <%= check_box_tag "volume_ids[]", volume[:id], false, class: "w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" %>
+            </div>
+
+            <%# Volume Cover image %>
+            <div class="w-full aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
+              <% if volume[:image_url].present? %>
+                <img src="<%= volume[:image_url] %>" alt="<%= volume[:title] %>" class="w-full h-full object-cover">
+              <% else %>
+                <span class="text-[10px] text-slate-400 font-medium">Vol <%= volume[:volume_number] || (index + 1) %></span>
+              <% end %>
+            </div>
+
+            <%# Volume Text %>
+            <span class="text-xs font-bold text-slate-800 line-clamp-1 px-1">
+              Vol <%= volume[:volume_number] || (index + 1) %>
+            </span>
+          </label>
+        <% end %>
+      </div>
+
+      <%# Floating Action Save Button %>
+      <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-40">
+        <div class="max-w-md mx-auto">
+          <%= f.submit "Add Selected to Bookshelf", class: "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all text-center cursor-pointer active:scale-98" %>
+        </div>
+      </div>
+
+    <% end %>
+  </div>
+</div>

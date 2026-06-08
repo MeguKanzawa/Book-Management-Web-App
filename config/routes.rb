@@ -1,4 +1,10 @@
 Rails.application.routes.draw do
+  # root 'search#index'
+  get "/", to: 'search#index', as: 'search'
+  # get 'search', to: index
+  get "search/series", to: 'search#show_series', as: 'search_series'
+  resources :books
+  resources :book_series
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
