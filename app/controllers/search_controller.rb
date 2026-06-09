@@ -29,10 +29,11 @@ class SearchController < ApplicationController
   end
 
   def show_series
-    @series_name = params[:name]
-    @author = params[:author]
-    
-    # Strictly pull the beautifully sequenced, sequential volume timeline using Rakuten
-    @volumes = RakutenBooksService.fetch_series_volumes(@series_name, @author)    
+   @series_name = params[:series_name]
+  @author      = params[:author]
+  @publisher   = params[:publication] # or params[:publisher] depending on your index configuration
+
+  # ⚡ Pass all 3 metrics down to filter precisely out of the 7 isolated variants found
+  @volumes = RakutenBooksService.fetch_series_volumes(@series_name, @author, @publisher)
   end
 end

@@ -20,11 +20,11 @@ class RakutenBooksService
     series_map = {}
 
     params = {
-      format: "json",          # ⚡ REQUIRED by the new gateway architecture
+      format: "json",          
       applicationId: app_id,
-      accessKey: access_key,   # ⚡ REQUIRED key for openapi endpoints
+      accessKey: access_key,   
       title: query,
-      booksGenreId: "001",
+      booksGenreId: "001",     
       hits: 30,
       formatVersion: 2
     }
@@ -42,17 +42,30 @@ class RakutenBooksService
       data["Items"].each do |item|
         raw_title = item["title"] || "Untitled"
         
-        series_name = raw_title.gsub(/(?:[\s(（・:：]*(?:Vol\.|巻|第|#)\s*\d+.*$)/i, '').strip
+        # ⚡ FIX 1: Enhanced regex to match naked volume numbers and trailing Japanese set qualifiers
+        series_name = raw_title.gsub(/(?:[\s(（・:：]*(?:Vol\.|巻|第|#)?\s*\d+.*$)|[\s(（・:：]*(?:全巻)?セット.*$/i, '').strip
         series_name = raw_title if series_name.blank?
 
         author = item["author"] || "Unknown Author"
         publisher = item["publisherName"] || "Unknown Publisher"
         
-        group_key = "#{author.downcase.gsub(/[\s ]/, '')}_#{series_name.downcase.gsub(/[\s ]/, '')}"
+        # ⚡ FIX 2: Strip both half-width spaces and Japanese full-width spaces ( ) from author/publisher
+        normalized_author = author.downcase.gsub(/[\s ]/, '')
+        normalized_publisher = publisher.downcase.gsub(/[\s ]/, '')
+        normalized_series = normalize_text(series_name)
+        
+        # Build the final tight grouping fingerprint
+        group_key = "#{normalized_author}_#{normalized_publisher}_#{normalized_series}"
+        
         image_url = item["largeImageUrl"] || item["mediumImageUrl"]
         image_url = nil if image_url&.include?("nowprinting")
 
         if series_map[group_key]
+          # If the current saved title contains an unwanted artifact but the new incoming item is clean, favor the cleaner series name
+          if series_map[group_key][:series_name].include?("巻") || series_map[group_key][:series_name].match?(/\d+$/)
+            series_map[group_key][:series_name] = series_name
+          end
+          
           if series_map[group_key][:image_url].blank? && image_url.present?
             series_map[group_key][:image_url] = image_url
           end
@@ -74,7 +87,8 @@ class RakutenBooksService
     series_map.values
   end
   
-  def self.fetch_series_volumes(series_name, author = nil)
+  # Update this method inside app/services/rakuten_books_service.rb
+  def self.fetch_series_volumes(series_name, author = nil, publisher = nil)
     return [] if series_name.blank?
 
     app_id = ENV['RAKUTEN_APP_ID']
@@ -102,6 +116,8 @@ class RakutenBooksService
       }
 
       params[:author] = author if author.present?
+      # ⚡ NEW: Scope the query to the chosen publisher variant to prevent mismatched formats
+      params[:publisherName] = publisher if publisher.present?
 
       query_string = params.map { |k, v| "#{k}=#{ERB::Util.url_encode(v.to_s)}" }.join("&")
       uri = URI("#{BASE_URL}?#{query_string}")
@@ -122,8 +138,16 @@ class RakutenBooksService
           next if title.include?("セット") || title.include?("公式ファンブック") || title.include?("BOX")
           next unless normalize_text(title).start_with?(target_base)
 
+          has_serial_marker = title.match?(/(?:Vol\.|巻|第|#)\s*\d+/i)
           vol_num = extract_volume_number(title)
-          next if vol_num.nil? || vol_num <= 0 || vol_num > 500
+
+          if vol_num.nil?
+            vol_num = 0
+          elsif !has_serial_marker && vol_num > 150
+            vol_num = 0
+          end
+
+          next if vol_num < 0 || vol_num > 500
 
           image_url = item["largeImageUrl"] || item["mediumImageUrl"]
           image_url = nil if image_url&.include?("nowprinting")
@@ -148,6 +172,22 @@ class RakutenBooksService
       end
     end
 
+    return [] if all_volumes.empty?
+
+    if all_volumes.any? { |v| v[:volume_number] == 0 }
+      explicit_vols = all_volumes.select { |v| v[:volume_number] > 0 }
+      standalone_vols = all_volumes.select { |v| v[:volume_number] == 0 }.sort_by { |v| v[:release_date] || "9999-12-31" }
+      
+      if explicit_vols.empty?
+        standalone_vols.each_with_index { |v, i| v[:volume_number] = i + 1 }
+        all_volumes = standalone_vols
+      else
+        max_explicit = explicit_vols.map { |v| v[:volume_number] }.max || 0
+        standalone_vols.each_with_index { |v, i| v[:volume_number] = max_explicit + i + 1 }
+        all_volumes = explicit_vols + standalone_vols
+      end
+    end
+
     existing_volumes = all_volumes.group_by { |v| v[:volume_number] }.transform_values do |editions|
       editions.sort_by { |e| e[:image_url].present? ? 0 : 1 }.first
     end
@@ -168,17 +208,12 @@ class RakutenBooksService
 
   private
 
-  # Inside app/services/rakuten_books_service.rb
-# Replace the old method at the bottom of your file with this one:
-  # Update this method at the bottom of app/services/rakuten_books_service.rb
   def self.make_api_request(uri)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
 
     request = Net::HTTP::Get.new(uri)
     
-    # ⚡ UPDATED: Swapped http:// for https:// to satisfy secure gateway validation rules
-    # Double check that 'my-manga-app.com' matches your console's "Allowed Websites" field exactly!
     request['Referer']    = 'https://my-bookshelf-app.com/'
     request['Referrer']   = 'https://my-bookshelf-app.com/'
     request['Origin']     = 'https://my-bookshelf-app.com'
@@ -195,7 +230,7 @@ class RakutenBooksService
   end
 
   def self.normalize_text(text)
-    text.to_s.downcase.gsub(/[\s :：巻話Vol\d・【】（）()\-ー\/+\#\!！]/i, '')
+    text.to_s.downcase.gsub(/[\s :：巻話Vol\d・【】（）()\-ー\/+\#\!！ ]/i, '')
   end
 
   def self.extract_volume_number(title)
