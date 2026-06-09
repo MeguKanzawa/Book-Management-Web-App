@@ -65,6 +65,13 @@ class GoogleBooksService
     []
   end
 
+  def self.normalize_title(text)
+    return "" if text.blank?
+    text.downcase
+        .gsub(/[\s :：巻話Vol\d・【】（）()\-ー\/+\#\!！]/i, '')
+        .gsub(/(モノクロ版|カラー版|デジタル着色版|ジャンプコミックスdigital|ジャンプコミックス|コミック|digital|edition|shonen)/i, '')
+  end
+
   # Step 2: Fetch volumes up to 200+ linked STRICTLY to the exact Title and Author
   def self.fetch_series_volumes_by_title(series_name, author = nil, lang = 'ja')
     return [] if series_name.blank?
@@ -96,18 +103,29 @@ class GoogleBooksService
         info = item["volumeInfo"] || {}
         title = info['title'] || 'Untitled'
 
-        item_base_title = title.downcase.gsub(/[\s :：巻話Vol\d・【】（）()\-ー\/+\#]/i, '')
-        next unless item_base_title == target_base_title
+        item_base_title = normalize_title(title)
+          next unless item_base_title == target_base_title
 
         item_authors = info['authors'] || []
-        if author.present? && item_authors.present?
-          clean_target_author = author.downcase.gsub(/[\s ]/, '')
-          author_matched = item_authors.any? do |a|
-            clean_item_auth = a.downcase.gsub(/[\s ]/, '')
-            clean_item_auth.include?(clean_target_author) || clean_target_author.include?(clean_item_auth)
+          if author.present? && item_authors.present?
+            clean_target_author = author.downcase.gsub(/[\s ]/, '')
+            
+            # Check if there's an alphabet mismatch (e.g. "Eiichiro Oda" vs "尾田栄一郎")
+            has_japanese_target = clean_target_author =~ /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/
+            
+            author_matched = item_authors.any? do |a|
+              clean_item_auth = a.downcase.gsub(/[\s ]/, '')
+              has_japanese_item = clean_item_auth =~ /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/
+              
+              # If one name is English and one is Japanese, allow it through via title authority match
+              if !!has_japanese_target != !!has_japanese_item
+                true
+              else
+                clean_item_auth.include?(clean_target_author) || clean_target_author.include?(clean_item_auth)
+              end
+            end
+            next unless author_matched
           end
-          next unless author_matched
-        end
 
         display_num = info.dig('seriesInfo', 'bookDisplayNumber')
         order_num = info.dig('seriesInfo', 'volumeSeries', 0, 'orderNumber')
@@ -118,8 +136,8 @@ class GoogleBooksService
         elsif order_num.present?
           extracted_num = order_num
         else
-          if title slice_match = title.match(/(?:Vol\.|巻|第|#)\s*(\d+)/i)
-            extracted_num = slice_match[1]
+          if (slice_match = title.match(/(?:Vol\.|巻|第|#)\s*(\d+)/i))
+              extracted_num = slice_match[1]
           else
             numbers = title.scan(/\d+/)
             clean_numbers = numbers.reject { |n| n.to_i >= 1950 && n.to_i <= 2030 }
@@ -145,6 +163,10 @@ class GoogleBooksService
       end
 
       start_index += max_results
+      rescue StandardError => e
+        Rails.logger.warn "GoogleBooksService page processing interrupted at index #{start_index}: #{e.message}"
+        break 
+      
     end
 
     existing_volumes = all_volumes.group_by { |v| v[:volume_number] }.transform_values do |editions|

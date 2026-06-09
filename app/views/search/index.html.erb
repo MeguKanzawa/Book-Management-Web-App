@@ -52,8 +52,9 @@
               </div>
 
               <div class="mt-2">
+                <%# ⚡ UPDATED: Passing author name parameter instead of old series_id %>
                 <%= link_to "Select Series", 
-                    search_series_path(name: series[:series_name], series_id: series[:series_id]), 
+                    search_series_path(name: series[:series_name], author: series[:author]), 
                     class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
               </div>
             </div>
@@ -75,6 +76,6 @@
         <p class="text-slate-500 text-sm max-w-xs mx-auto mt-1">Search an ongoing manga or novel title above to pull data directly from the API and start tracking your collection.</p>
       </div>
     <% end %>
-  </div> <%# Closes <div class="max-w-md mx-auto px-4 mt-4"> %>
+  </div>
 
-</div> <%# Closes the main page container <div class="min-h-screen bg-slate-50 pb-12"> %>
+</div>
