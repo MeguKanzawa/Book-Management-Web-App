@@ -21,19 +21,25 @@
 class SearchController < ApplicationController
   def index
     if params[:query].present?
-      # Leverage Rakuten to display clear series suggestions right out of the gate
-      @found_series = RakutenBooksService.search_parent_series(params[:query])
+      @found_series_by_genre = RakutenBooksService.search_parent_series(params[:query])
     else
-      @found_series = []
+      @found_series_by_genre = {}
     end
   end
 
   def show_series
-   @series_name = params[:series_name]
-  @author      = params[:author]
-  @publisher   = params[:publication] # or params[:publisher] depending on your index configuration
-
-  # ⚡ Pass all 3 metrics down to filter precisely out of the 7 isolated variants found
-  @volumes = RakutenBooksService.fetch_series_volumes(@series_name, @author, @publisher)
+    @title = params[:title]
+    @series_name = params[:series_name]
+    @genre_id    = params[:genre_id]
+    @author      = params[:author]
+    @publisher   = params[:publisher]
+  
+    @volumes = RakutenBooksService.fetch_series_volumes(
+      @title,
+      @series_name,
+      @genre_id,
+      @author,
+      @publisher,
+    )
   end
 end

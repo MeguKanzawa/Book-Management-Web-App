@@ -1,7 +1,6 @@
 <%# app/views/search/index.html.erb %>
 <div class="min-h-screen bg-slate-50 pb-12">
   
-  <%# Sticky App Header & Search Bar %>
   <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
     <div class="max-w-md mx-auto">
       <h1 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
@@ -22,13 +21,16 @@
   </div>
 
   <div class="max-w-md mx-auto px-4 mt-4">
-    <% if @found_series.any? %>
-      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-        Series Collections Found (<%= @found_series.size %>)
-      </p>
+    <% if @found_series_by_genre.present? %>
       
+      <div class="mb-3 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-500">
+          Found <%= @found_series_by_genre.size %> Series
+        </span>
+      </div>
+
       <div class="space-y-3">
-        <% @found_series.each do |series| %>
+        <% @found_series_by_genre.values.each do |series| %>
           <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex gap-4 items-start">
             <div class="w-20 h-28 bg-slate-200 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center text-center p-1">
               <% if series[:image_url].present? %>
@@ -47,13 +49,23 @@
                   <%= series[:author] %>
                 </p>
                 <p class="text-xs text-slate-400 truncate mt-0.5">
-                  <%= series[:publication] %>
+                  <%= series[:publisher] %>
                 </p>
+                <span class="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 font-semibold">
+                  Genre: <%= series[:genre_id] %>
+                </span>
               </div>
 
               <div class="mt-2">
-                <%# ⚡ UPDATED: Passing author name parameter instead of old series_id %>
-                <%= link_to "Select Series", search_series_path(series_name: series[:series_name], author: series[:author], publication: series[:publication]), class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
+                <%= link_to "Select Series", 
+                    search_series_path(
+                      title: series[:title],
+                      series_name: series[:series_name], 
+                      genre_id: series[:genre_id], 
+                      author: series[:author], 
+                      publisher: series[:publisher]
+                    ), 
+                    class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
               </div>
             </div>
           </div>
@@ -64,14 +76,14 @@
       <div class="text-center py-12">
         <p class="text-4xl mb-2">🔍</p>
         <h3 class="font-bold text-slate-700 text-lg">No books found</h3>
-        <p class="text-slate-400 text-sm max-w-xs mx-auto mt-1">We couldn't find anything matching "<%= params[:query] %>". Check your spelling or try another title!</p>
+        <p class="text-slate-400 text-sm max-w-xs mx-auto mt-1">We couldn't find anything matching "<%= params[:query] %>".</p>
       </div>
 
     <% else %>
       <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 p-6 mt-4">
         <p class="text-4xl mb-3">📖</p>
         <h3 class="font-bold text-slate-800 text-lg">Your Personal Bookshelf</h3>
-        <p class="text-slate-500 text-sm max-w-xs mx-auto mt-1">Search an ongoing manga or novel title above to pull data directly from the API and start tracking your collection.</p>
+        <p class="text-slate-500 text-sm max-w-xs mx-auto mt-1">Search an ongoing manga or novel title above to pull data directly from the API.</p>
       </div>
     <% end %>
   </div>

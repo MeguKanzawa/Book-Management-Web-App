@@ -1,56 +1,78 @@
 <%# app/views/search/show_series.html.erb %>
-<div class="min-h-screen bg-slate-50 pb-24">
-  
-  <%# Navigation Header %>
-  <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-4 shadow-sm flex items-center justify-between">
-    <%= link_to "← Back", :back, class: "text-slate-600 hover:text-slate-900 text-sm font-medium" %>
-    <h1 class="text-base font-bold text-slate-800 truncate max-w-[200px]"><%= @series_name %></h1>
-    <div class="w-10"></div> <%# Spacer %>
+<div class="min-h-screen bg-slate-50 pb-12">
+
+  <%# Header with Back Navigation %>
+  <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
+    <div class="max-w-2xl mx-auto flex items-center justify-between">
+      <%= link_to "← Back to Search", search_path(query: @series_name), class: "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1" %>
+      <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">
+        <%= @volumes.to_a.size %> Volumes
+      </span>
+    </div>
   </div>
 
-  <div class="max-w-md mx-auto px-4 mt-6">
-    <div class="mb-4">
-      <h2 class="text-xl font-bold text-slate-900">Track Volumes</h2>
-      <p class="text-sm text-slate-500">Check the volumes you currently own or want to track.</p>
+  <%# Series Overview Header %>
+  <div class="max-w-2xl mx-auto px-4 mt-6">
+    <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-6">
+      <h1 class="text-xl font-bold text-slate-900 leading-snug">
+        <%= @series_name %>
+      </h1>
+      <div class="mt-2 text-xs text-slate-500 space-y-1">
+        <% if @author.present? %>
+          <p><span class="font-semibold text-slate-700">Author:</span> <%= @author %></p>
+        <% end %>
+        <% if @publisher.present? %>
+          <p><span class="font-semibold text-slate-700">Publisher:</span> <%= @publisher %></p>
+        <% end %>
+        <% if @genre_id.present? %>
+          <p><span class="font-semibold text-slate-700">Genre ID:</span> <%= @genre_id %></p>
+        <% end %>
+      </div>
     </div>
 
-    <%# Form to save selected volumes to your tracking database %>
-    <%= form_with url: books_path, method: :post, local: true do |f| %>
-      <%= hidden_field_tag :series_name, @series_name %>
-
-      <div class="grid grid-cols-3 gap-3">
-        <% @volumes.each_with_index do |volume, index| %>
-          <label class="relative bg-white border border-slate-200 rounded-xl p-2 flex flex-col items-center justify-between text-center cursor-pointer select-none hover:border-indigo-300 transition-all shadow-sm">
-            
-            <%# Checkbox Input Hidden/Styled %>
-            <div class="absolute top-2 right-2 z-10">
-              <%= check_box_tag "volume_ids[]", volume[:id], false, class: "w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" %>
-            </div>
-
-            <%# Volume Cover image %>
-            <div class="w-full aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
+    <%# Volumes Grid %>
+    <% if @volumes.present? %>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <% @volumes.each do |volume| %>
+          <div class="bg-white rounded-xl border border-slate-100 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div class="w-full aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden mb-2 relative">
               <% if volume[:image_url].present? %>
                 <img src="<%= volume[:image_url] %>" alt="<%= volume[:title] %>" class="w-full h-full object-cover">
               <% else %>
-                <span class="text-[10px] text-slate-400 font-medium">Vol <%= volume[:volume_number] || (index + 1) %></span>
+                <div class="w-full h-full flex items-center justify-center text-xs text-slate-400 p-2 text-center">
+                  No Image Available
+                </div>
+              <% end %>
+              <% if volume[:volume_number].to_i > 0 %>
+                <span class="absolute top-1.5 left-1.5 bg-indigo-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-sm">
+                  Vol. <%= volume[:volume_number] %>
+                </span>
               <% end %>
             </div>
 
-            <%# Volume Text %>
-            <span class="text-xs font-bold text-slate-800 line-clamp-1 px-1">
-              Vol <%= volume[:volume_number] || (index + 1) %>
-            </span>
-          </label>
+            <div>
+              <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight">
+                <%= volume[:title] %>
+              </h4>
+              <% if volume[:release_date].present? %>
+                <p class="text-[10px] text-slate-400 mt-1">
+                  Released: <%= volume[:release_date] %>
+                </p>
+              <% end %>
+            </div>
+          </div>
         <% end %>
       </div>
 
-      <%# Floating Action Save Button %>
-      <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-40">
-        <div class="max-w-md mx-auto">
-          <%= f.submit "Add Selected to Bookshelf", class: "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all text-center cursor-pointer active:scale-98" %>
-        </div>
+    <% else %>
+      <div class="text-center py-12 bg-white rounded-2xl border border-slate-100 p-6">
+        <p class="text-3xl mb-2">📦</p>
+        <h3 class="font-bold text-slate-700 text-base">No volumes found</h3>
+        <p class="text-slate-400 text-xs max-w-xs mx-auto mt-1">
+          Unable to fetch volumes for this series from the Rakuten API.
+        </p>
       </div>
-
     <% end %>
   </div>
+
 </div>
