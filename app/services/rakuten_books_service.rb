@@ -95,7 +95,7 @@ def self.search_parent_series(query)
 end
 
   # PHASE 2: Fetch up to 100 volumes scoped by genre_id, author, publisher, and series_name
-  def self.fetch_series_volumes(title, series_name: nil, genre_id: nil, author: nil, publisher: nil)
+  def self.fetch_series_volumes(title, series_name, genre_id, author, publisher)
     return [] if series_name.blank?
 
     app_id = ENV['RAKUTEN_APP_ID']
@@ -110,32 +110,32 @@ end
     loop do
       break if page > max_pages || all_volumes.size >= 100
 
+      first_author = first_author(author)
+      p first_author
+
       params = {
         format: "json",
+        title: title,
+        author: first_author,
+        publisherName: publisher,
+        booksGenreId: genre_id,
         applicationId: app_id,
         accessKey: access_key,
-        title: title,
-        booksGenreId: genre_id,
-        author: author,
-        # seriesName: series_name,
-        publisherName: publisher,
         sort: "+releaseDate",     
-        hits: 30,                
+        hits: 28,                
         page: page,
+        referer: "https://my-bookshelf-app.com/",
         formatVersion: 2         
       }
-
-      params[:author] = author if author.present?
-      params[:publisherName] = publisher if publisher.present?
 
       query_string = params.map { |k, v| "#{k}=#{ERB::Util.url_encode(v.to_s)}" }.join("&")
       uri = URI("#{BASE_URL}?#{query_string}")
 
       response_body = make_api_request(uri)
-      break if response_body.blank?
-
+      
       begin
         data = JSON.parse(response_body)
+        p data["Items"].blank?
         break if data["error"] || data["Items"].blank?
 
         items = data["Items"]
@@ -143,6 +143,7 @@ end
 
         items.each do |item|
           title = item["title"] || ""
+          p title
           
           next if title.include?("セット") || title.include?("公式ファンブック") || title.include?("BOX")
           next unless normalize_text(title).start_with?(target_base)
@@ -166,7 +167,7 @@ end
         break if page >= total_pages
 
         page += 1
-        sleep 0.2
+        sleep 0.25
       rescue StandardError => e
         Rails.logger.warn "⚠️ RakutenBooksService page parsing issue at page #{page}: #{e.message}"
         break
@@ -239,5 +240,9 @@ end
 
     false
 
+  end
+
+  def self.first_author(author_str)
+    return author_str.split('/').first
   end
 end
