@@ -41,5 +41,6 @@ class SearchController < ApplicationController
       @author,
       @publisher,
     )
+
   end
 end

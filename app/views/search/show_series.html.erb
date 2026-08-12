@@ -3,21 +3,21 @@
 
   <%# Header with Back Navigation %>
   <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
-    <div class="max-w-2xl mx-auto flex items-center justify-between">
-      <%= link_to "← Back to Search", search_path(query: @series_name), class: "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1" %>
-      <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">
-        <%= @volumes.to_a.size %> Volumes
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <%= link_to "← Back to Search", search_path(query: @series_name.presence || @title), class: "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1" %>
+      <span class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+        <%= @volumes.to_a.size %> Volumes Found
       </span>
     </div>
   </div>
 
   <%# Series Overview Header %>
-  <div class="max-w-2xl mx-auto px-4 mt-6">
+  <div class="max-w-4xl mx-auto px-4 mt-6">
     <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-6">
-      <h1 class="text-xl font-bold text-slate-900 flex-wrap">
-        <%= @title %>
+      <h1 class="text-2xl font-bold text-slate-900 leading-snug">
+        <%= @title.presence || @series_name %>
       </h1>
-      <div class="mt-2 text-xs text-slate-500 space-y-1">
+      <div class="mt-2 text-xs text-slate-500 flex flex-col flex-wrap gap-x-4 gap-y-1">
         <% if @author.present? %>
           <p><span class="font-semibold text-slate-700">Author:</span> <%= @author %></p>
         <% end %>
@@ -32,31 +32,42 @@
 
     <%# Volumes Grid %>
     <% if @volumes.present? %>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <% @volumes.each do |volume| %>
+          <%# Safe Key Extraction for both String & Symbol keys %>
+          <% vol_title  = volume[:title] || volume["title"] %>
+          <% vol_img    = volume[:image_url] || volume["image_url"] %>
+          <% vol_num    = (volume[:volume_number] || volume["volume_number"]).to_i %>
+          <% vol_date   = volume[:release_date] || volume["release_date"] %>
+
           <div class="bg-white rounded-xl border border-slate-100 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-            <div class="w-full aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden mb-2 relative">
-              <% if volume[:image_url].present? %>
-                <img src="<%= volume[:image_url] %>" alt="<%= volume[:title] %>" class="w-full h-full object-cover">
+            <div class="w-full aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden mb-2 relative group">
+              <% if vol_img.present? %>
+                <img src="<%= vol_img %>" alt="<%= vol_title %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
               <% else %>
                 <div class="w-full h-full flex items-center justify-center text-xs text-slate-400 p-2 text-center">
-                  No Image Available
+                  No Image
                 </div>
               <% end %>
-              <% if volume[:volume_number].to_i > 0 %>
+
+              <% if vol_num > 0 %>
                 <span class="absolute top-1.5 left-1.5 bg-indigo-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-sm">
-                  Vol. <%= volume[:volume_number] %>
+                  Vol. <%= vol_num %>
+                </span>
+              <% else %>
+                <span class="absolute top-1.5 left-1.5 bg-slate-700 text-white font-medium text-[9px] px-1.5 py-0.5 rounded-full shadow-sm">
+                  Side Story
                 </span>
               <% end %>
             </div>
 
-            <div>
-              <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight">
-                <%= volume[:title] %>
+            <div class="flex flex-col justify-between flex-grow">
+              <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight" title="<%= vol_title %>">
+                <%= vol_title %>
               </h4>
-              <% if volume[:release_date].present? %>
+              <% if vol_date.present? %>
                 <p class="text-[10px] text-slate-400 mt-1">
-                  Released: <%= volume[:release_date] %>
+                  <%= vol_date %>
                 </p>
               <% end %>
             </div>

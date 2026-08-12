@@ -96,7 +96,7 @@ end
 
   # PHASE 2: Fetch up to 100 volumes scoped by genre_id, author, publisher, and series_name
   def self.fetch_series_volumes(title, series_name, genre_id, author, publisher)
-    return [] if series_name.blank?
+    # return [] if series_name.blank?
 
     app_id = ENV['RAKUTEN_APP_ID']
     access_key = ENV['RAKUTEN_ACCESS_KEY']
@@ -104,14 +104,16 @@ end
 
     all_volumes = []
     page = 1
-    max_pages = 4 # 4 pages * 30 hits = up to 120 potential raw items
+    max_pages = 10 # 4 pages * 28 hits = up to 112 potential raw items
     target_base = normalize_text(series_name)
 
     loop do
+      # p if page > max_pages || all_volumes.size >= 100
+      # break if page > max_pages || all_volumes.size >= 100
+      # 
       break if page > max_pages || all_volumes.size >= 100
 
       first_author = first_author(author)
-      p first_author
 
       params = {
         format: "json",
@@ -119,11 +121,11 @@ end
         author: first_author,
         publisherName: publisher,
         booksGenreId: genre_id,
+        page: page,
+        sort: "+releaseDate",     
         applicationId: app_id,
         accessKey: access_key,
-        sort: "+releaseDate",     
-        hits: 28,                
-        page: page,
+        hits: 30,                
         referer: "https://my-bookshelf-app.com/",
         formatVersion: 2         
       }
@@ -135,46 +137,57 @@ end
       
       begin
         data = JSON.parse(response_body)
-        p data["Items"].blank?
         break if data["error"] || data["Items"].blank?
 
         items = data["Items"]
         break if items.empty?
 
         items.each do |item|
-          title = item["title"] || ""
-          p title
+          vol_title = item["title"].to_s
+          p vol_title
           
-          next if title.include?("セット") || title.include?("公式ファンブック") || title.include?("BOX")
-          next unless normalize_text(title).start_with?(target_base)
+          next if vol_title.match?(/セット|公式ファンブック|BOX|画集|ガイドブック/i)
+          p "passed string match test"
 
-          vol_num = extract_volume_number(title) || 0
+          # normalized_vol = normalize_text(vol_title)
+          # next unless normalized_vol.include?(target_base)
+          # p "passed normalized volume string check"
+
+          vol_num = extract_volume_number(vol_title) || 0
           next if vol_num < 0 || vol_num > 500
+          p "passed volume number check"
 
+        
           image_url = item["largeImageUrl"] || item["mediumImageUrl"]
           image_url = nil if image_url&.include?("nowprinting")
 
           all_volumes << {
-            id: "rakuten-#{item['isbn'] || SecureRandom.hex(4)}",
-            title: title,
+            id: "#{item['isbn'] || SecureRandom.hex(4)}",
+            title: vol_title,
             volume_number: vol_num,
             image_url: image_url,
             release_date: item["releaseDate"]
           }.with_indifferent_access
         end
 
-        total_pages = data["pageCount"] ? data["pageCount"].to_i : 1
-        break if page >= total_pages
+        total_pages = data["pageCount"].to_i
+        break if total_pages > 0 && page >= total_pages
 
         page += 1
         sleep 0.25
       rescue StandardError => e
         Rails.logger.warn "⚠️ RakutenBooksService page parsing issue at page #{page}: #{e.message}"
-        break
       end
     end
 
-    all_volumes.first(100)
+    # all_volumes.uniq { |v| v[:title] }.sort_by { |v| v[:volume_number] }
+    
+
+    p all_volumes.size
+    p "finished fetch_volumes"
+  
+
+    return all_volumes
   end
 
   private
@@ -213,6 +226,10 @@ end
 
   def self.extract_volume_number(title)
     if (match = title.match(/(?:Vol\.|巻|第|#)\s*(\d+)/i))
+      return match[1].to_i
+    end
+
+    if (match = title.match(/(?:\[|\(|［|（)(\d+)(?:\]|\)|］|）)/))
       return match[1].to_i
     end
 
