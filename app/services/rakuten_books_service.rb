@@ -149,13 +149,18 @@ end
           next if vol_title.match?(/セット|公式ファンブック|BOX|画集|ガイドブック/i)
           # p "passed string match test"
           
-          normalized_volume = normalize_volume(vol_title)
+          normalized_volume = normalize_volume(vol_title, title)
 
           # normalized_vol = normalize_text(vol_title)
           # next unless normalized_vol.include?(target_base)
           # p "passed normalized volume string check"
+          # 
+          
+          p title
+          p vol_title
+          p "/n"
 
-          vol_num = extract_volume_number(vol_title) || 0
+          vol_num = extract_volume_number(vol_title, title) || 0
           next if vol_num < 0 || vol_num > 500
           # p "passed volume number check"
 
@@ -227,14 +232,14 @@ end
     text.to_s.downcase.gsub(/[\s:：巻話Vol\d・【】（）()\/\#\ ]/i, '')
   end
 
-  def self.normalize_volume(text)
-    vol_num = extract_volume_number(text)
+  def self.normalize_volume(text, series_title)
+    vol_num = extract_volume_number(text, series_title)
     cleaned_text = normalize_text(text)
 
     vol_num ? "#{cleaned_text}#{vol_num}" : cleaned_text
   end
 
-  def self.extract_volume_number(title)
+  def self.extract_volume_number(title, series_title)
     if (match = title.match(/(?:Vol\.|巻|第|#)\s*(\d+)/i))
       return match[1].to_i
     end
@@ -243,10 +248,14 @@ end
       return match[1].to_i
     end
 
+    if (title == series_title)
+      return 1
+    end
+
     numbers = title.scan(/\d+/)
     clean_numbers = numbers.reject { |n| n.to_i >= 1950 && n.to_i <= 2030 }
     
-    clean_numbers.last ? clean_numbers.last.to_i : 1
+    clean_numbers.last ? clean_numbers.last.to_i : nil
   end
 
   def self.digital_item?(item)
