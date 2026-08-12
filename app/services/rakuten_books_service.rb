@@ -179,6 +179,7 @@ end
         sleep 0.25
       rescue StandardError => e
         Rails.logger.warn "⚠️ RakutenBooksService page parsing issue at page #{page}: #{e.message}"
+        break
       end
     end
 
