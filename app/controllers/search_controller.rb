@@ -25,9 +25,12 @@ class SearchController < ApplicationController
     else
       @found_series_by_genre = {}
     end
+    session[:query] = params[:query]
+    @query = session[:query]
   end
 
   def show_series
+    @query = session[:query]
     @title = params[:title]
     @series_name = params[:series_name]
     @genre_id    = params[:genre_id]

@@ -144,10 +144,12 @@ end
 
         items.each do |item|
           vol_title = item["title"].to_s
-          p vol_title
+          # p vol_title
           
           next if vol_title.match?(/セット|公式ファンブック|BOX|画集|ガイドブック/i)
-          p "passed string match test"
+          # p "passed string match test"
+          
+          normalized_volume = normalize_volume(vol_title)
 
           # normalized_vol = normalize_text(vol_title)
           # next unless normalized_vol.include?(target_base)
@@ -155,7 +157,7 @@ end
 
           vol_num = extract_volume_number(vol_title) || 0
           next if vol_num < 0 || vol_num > 500
-          p "passed volume number check"
+          # p "passed volume number check"
 
         
           image_url = item["largeImageUrl"] || item["mediumImageUrl"]
@@ -163,7 +165,7 @@ end
 
           all_volumes << {
             id: "#{item['isbn'] || SecureRandom.hex(4)}",
-            title: vol_title,
+            title: normalized_volume,
             volume_number: vol_num,
             image_url: image_url,
             release_date: item["releaseDate"]
@@ -221,7 +223,14 @@ end
   end
 
   def self.normalize_text(text)
-    text.to_s.downcase.gsub(/[\s :：巻話Vol\d・【】（）()\-ー\/+\#\!！ ]/i, '')
+    text.to_s.downcase.gsub(/[\s:：巻話Vol\d・【】（）()\/\#\ ]/i, '')
+  end
+
+  def self.normalize_volume(text)
+    vol_num = extract_volume_number(text)
+    cleaned_text = normalize_text(text)
+
+    vol_num ? "#{cleaned_text}#{vol_num}" : cleaned_text
   end
 
   def self.extract_volume_number(title)
@@ -236,7 +245,7 @@ end
     numbers = title.scan(/\d+/)
     clean_numbers = numbers.reject { |n| n.to_i >= 1950 && n.to_i <= 2030 }
     
-    clean_numbers.last ? clean_numbers.last.to_i : nil
+    clean_numbers.last ? clean_numbers.last.to_i : 1
   end
 
   def self.digital_item?(item)
