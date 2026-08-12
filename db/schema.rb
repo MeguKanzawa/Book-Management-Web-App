@@ -10,10 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_07_224647) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_12_221740) do
   create_table "book_series", force: :cascade do |t|
     t.string "author"
+    t.string "cover_image_url"
     t.datetime "created_at", null: false
+    t.integer "genre"
+    t.boolean "in_wishlist", default: false, null: false
     t.string "publication"
     t.integer "series_genre"
     t.integer "series_status"
@@ -21,6 +24,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_224647) do
     t.string "title"
     t.integer "tracking_status"
     t.datetime "updated_at", null: false
+    t.integer "wishlist_priority", default: 1
   end
 
   create_table "books", force: :cascade do |t|
@@ -30,6 +34,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_224647) do
     t.datetime "created_at", null: false
     t.string "image_url"
     t.string "isbn"
+    t.string "release_date"
     t.datetime "updated_at", null: false
     t.integer "volume_num"
     t.string "volume_title"

@@ -1,19 +1,25 @@
 Rails.application.routes.draw do
-  # root 'search#index'
+  root "search#index"
+
+  # Search & Series Route
   get "/", to: 'search#index', as: 'search'
-  # get 'search', to: index
   get "search/series", to: 'search#show_series', as: 'search_series'
-  resources :books
-  resources :book_series
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  
+  # Bookshelf Category Routes
+  get "bookshelf/manga", to: "bookshelves#manga", as: :manga_bookshelf
+  get "bookshelf/books", to: "bookshelves#books", as: :books_bookshelf
+  get "bookshelf/other", to: "bookshelves#other", as: :other_bookshelf
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
-  get "up" => "rails/health#show", as: :rails_health_check
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+  # Wishlist Route
+  get "wishlist", to: "wishlists#index", as: :wishlist
 
-  # Defines the root path route ("/")
-  # root "posts#index"
+  # Action Routes (Adding to Bookshelf / Wishlist)
+  resources :book_series, only: [:create, :update, :destroy] do
+    post :add_volumes, on: :member
+    patch :update_metadata, on: :member
+  end
+
+  post "add_series_to_bookshelf", to: "book_series#create_from_search"
+  post "add_series_to_wishlist", to: "wishlists#create_from_search"
+
 end
