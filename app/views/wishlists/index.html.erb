@@ -1,0 +1,39 @@
+<%# app/views/wishlists/index.html.erb %>
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-slate-900 mb-6">⭐ My Series Wishlist</h1>
+
+  <div class="space-y-4">
+    <% @wishlist_series.each do |series| %>
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+        
+        <div class="flex items-center gap-4">
+          <div class="w-16 aspect-[2/3] bg-slate-100 rounded-lg overflow-hidden shrink-0">
+            <% if series.cover_image_url.present? %>
+              <img src="<%= series.cover_image_url %>" class="w-full h-full object-cover">
+            <% end %>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm"><%= series.title %></h3>
+            <p class="text-xs text-slate-500"><%= series.author %></p>
+            
+            <%# Wishlist Priority Badge %>
+            <div class="mt-2 inline-block">
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full <%= series.high? ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700' %>">
+                <%= series.wishlist_priority %> Priority
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <%# Move to Bookshelf Form %>
+        <%= form_with url: add_series_to_bookshelf_path, method: :post do |f| %>
+          <%= hidden_field_tag :title, series.title %>
+          <%= hidden_field_tag :author, series.author %>
+          <%= hidden_field_tag :cover_image_url, series.cover_image_url %>
+          <%= f.submit "Move to Bookshelf", class: "text-xs font-bold bg-indigo-600 text-white px-3 py-2 rounded-xl hover:bg-indigo-700 cursor-pointer transition-colors" %>
+        <% end %>
+
+      </div>
+    <% end %>
+  </div>
+</div>
