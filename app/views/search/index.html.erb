@@ -1,6 +1,7 @@
 <%# app/views/search/index.html.erb %>
 <div class="min-h-screen bg-slate-50 pb-12">
   
+  <%# Sticky Search Header %>
   <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
     <div class="max-w-md mx-auto">
       <h1 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
@@ -20,6 +21,7 @@
     </div>
   </div>
 
+  <%# Search Results Area %>
   <div class="max-w-md mx-auto px-4 mt-4">
     <% if @found_series_by_genre.present? %>
       
@@ -31,51 +33,95 @@
 
       <div class="space-y-3">
         <% @found_series_by_genre.values.each do |series| %>
+          <% s_title     = series[:title] || series["title"] %>
+          <% s_name      = series[:series_name] || series["series_name"] %>
+          <% s_author    = series[:author] || series["author"] %>
+          <% s_publisher = series[:publisher] || series["publisher"] %>
+          <% s_img       = series[:image_url] || series["image_url"] %>
+          <% s_genre     = series[:rakuten_genre_id] || series["rakuten_genre_id"] %>
+
           <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex gap-4 items-center">
+            
+            <%# Cover Image %>
             <div class="w-20 h-28 bg-slate-200 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center text-center p-1">
-              <% if series[:image_url].present? %>
-                <img src="<%= series[:image_url] %>" alt="<%= series[:title] %>" class="w-full h-full object-cover">
+              <% if s_img.present? %>
+                <img src="<%= s_img %>" alt="<%= s_title %>" class="w-full h-full object-cover">
               <% else %>
                 <span class="text-[10px] text-slate-400 font-medium">No Image</span>
               <% end %>
             </div>
 
+            <%# Series Metadata & Actions %>
             <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
               <h3 class="font-bold text-slate-900 text-base leading-tight line-clamp-2">
-                  <%= series[:title] %>
-                </h3>
-              <div class = "flex flex-row justify-between items-center gap-4 mt-2">
-                <div class = "min-w-0 flex-1">
-                  <p class="text-sm text-slate-600 font-medium truncate mt-0.5">
-                    <%= series[:author] %>
-                  </p>
-                  <p class="text-xs text-slate-400 truncate mt-0.5">
-                    <%= series[:publisher] %>
-                  </p>
-                  <span class="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded  font-semibold">
-                    Genre: <%= series[:genre_id] %>
-                  </span>
-                </div>
+                <%= s_title %>
+              </h3>
               
+              <div class="mt-1">
+                <% if s_author.present? %>
+                  <p class="text-sm text-slate-600 font-medium truncate">
+                    <%= s_author %>
+                  </p>
+                <% end %>
+                
+                <% if s_publisher.present? %>
+                  <p class="text-xs text-slate-400 truncate mt-0.5">
+                    <%= s_publisher %>
+                  </p>
+                <% end %>
 
-              <div class="flex-shrink-0">
+                <% if s_genre.present? %>
+                  <span class="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-semibold">
+                    Genre: <%= s_genre %>
+                  </span>
+                <% end %>
+              </div>
+
+              <%# Action Buttons %>
+              <div class="flex items-center gap-1 mt-3 pt-2 border-t border-slate-100 flex-wrap">
                 <%= link_to "Select Series", 
                     search_series_path(
-                      title: series[:title],
-                      series_name: series[:series_name], 
-                      genre_id: series[:genre_id], 
-                      author: series[:author], 
-                      publisher: series[:publisher]
+                      title: s_title,
+                      series_name: s_name, 
+                      rakuten_genre_id: s_genre, 
+                      author: s_author, 
+                      publisher: s_publisher,
+                      query: params[:query]
                     ), 
                     class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
+
+                <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
+                  <%= hidden_field_tag :title, s_title %>
+                  <%= hidden_field_tag :author, s_author %>
+                  <%= hidden_field_tag :publisher, s_publisher %>
+                  <%= hidden_field_tag :rakuten_genre_id, s_genre%>
+                  <%= hidden_field_tag :cover_image_url, s_img %>
+                  <%= hidden_field_tag :series_type, :manga %>
+                  <button type="submit" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors cursor-pointer">
+                    + Bookshelf
+                  </button>
+                <% end %>
+
+                <%= form_with url: add_series_to_wishlist_path, method: :post, class: "inline" do %>
+                  <%= hidden_field_tag :title, s_title %>
+                  <%= hidden_field_tag :author, s_author %>
+                  <%= hidden_field_tag :publisher, s_publisher %>
+                  <%= hidden_field_tag :rakuten_genre_id, s_genre%>
+                  <%= hidden_field_tag :cover_image_url, s_img %>
+                  <button type="submit" class="text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 py-2 rounded-lg transition-colors cursor-pointer">
+                    ⭐ Wishlist
+                  </button>
+                <% end %>
               </div>
+
             </div>
-            </div>
+
           </div>
         <% end %>
       </div>
 
     <% elsif params[:query].present? %>
+      <%# No Results Found State %>
       <div class="text-center py-12">
         <p class="text-4xl mb-2">🔍</p>
         <h3 class="font-bold text-slate-700 text-lg">No books found</h3>
@@ -83,6 +129,7 @@
       </div>
 
     <% else %>
+      <%# Initial Empty Search State %>
       <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 p-6 mt-4">
         <p class="text-4xl mb-3">📖</p>
         <h3 class="font-bold text-slate-800 text-lg">Your Personal Bookshelf</h3>

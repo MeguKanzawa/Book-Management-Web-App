@@ -65,11 +65,34 @@
             </div>
           <% end %>
 
-          <div>
-            <a :href="'/search/series?title=' + encodeURIComponent(activeSeries.title)" class="inline-flex items-center gap-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-colors">
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <a :href="'/search/series?title=' + encodeURIComponent(activeSeries.title)" 
+               class="inline-flex items-center gap-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-colors">
               See More / Edit Volumes →
             </a>
+
+            <%# Move back to Wishlist %>
+            <form :action="'/book_series/' + activeSeries.id" method="post" class="inline">
+              <input type="hidden" name="_method" value="patch">
+              <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+              <input type="hidden" name="book_series[in_wishlist]" value="true">
+              <button type="submit" class="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl transition-colors">
+                Move to Wishlist
+              </button>
+            </form>
+
+            <%# Permanent Delete %>
+            <form :action="'/book_series/' + activeSeries.id" method="post" class="inline"
+                  @submit="if (!confirm('Are you sure you want to permanently delete ' + activeSeries.title + ' and all its volumes?')) { $event.preventDefault(); }">
+              <input type="hidden" name="_method" value="delete">
+              <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+              <button type="submit" class="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors">
+                Delete Series
+              </button>
+            </form>
           </div>
+
+
         </div>
       </div>
     </template>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_12_221740) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_13_002252) do
   create_table "book_series", force: :cascade do |t|
     t.string "author"
     t.string "cover_image_url"
@@ -18,6 +18,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_221740) do
     t.integer "genre"
     t.boolean "in_wishlist", default: false, null: false
     t.string "publication"
+    t.string "rakuten_genre_id"
     t.integer "series_genre"
     t.integer "series_status"
     t.integer "series_type"

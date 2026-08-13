@@ -50,7 +50,9 @@ def self.search_parent_series(query)
       next if digital_item?(item)
 
       raw_title = item["title"] || "Untitled"
-      genre_id  = item["booksGenreId"] || "unknown"
+      rakuten_genre_id  = item["booksGenreId"] || "unknown"
+
+      p rakuten_genre_id
 
       title = raw_title.gsub(/(?:[\s(（・:：]*(?:Vol\.|巻|第|#)?\s*\d+.*$)|[\s(（・:：]*(?:全巻)?セット.*$/i, '').strip
       series_name = item["seriesName"].presence || (title.present? ? title : raw_title)
@@ -63,7 +65,7 @@ def self.search_parent_series(query)
       # normalized_series    = normalize_text(series_name)
       
       # Grouping key ensures unique series per genre + author + publisher
-      group_key = "#{normalized_author}_#{normalized_publisher}_#{genre_id}_#{title}"
+      group_key = "#{normalized_author}_#{normalized_publisher}_#{rakuten_genre_id}_#{title}"
       
       image_url = item["largeImageUrl"] || item["mediumImageUrl"]
       image_url = nil if image_url&.include?("nowprinting")
@@ -81,7 +83,7 @@ def self.search_parent_series(query)
           author: author,
           publisher: publisher,
           image_url: image_url,
-          genre_id: genre_id 
+          rakuten_genre_id: rakuten_genre_id 
         }.with_indifferent_access
       end
     end
@@ -94,8 +96,8 @@ def self.search_parent_series(query)
   
 end
 
-  # PHASE 2: Fetch up to 100 volumes scoped by genre_id, author, publisher, and series_name
-  def self.fetch_series_volumes(title, series_name, genre_id, author, publisher)
+  # PHASE 2: Fetch up to 100 volumes scoped by rakuten_genre_id, author, publisher, and series_name
+  def self.fetch_series_volumes(title, series_name, rakuten_genre_id, author, publisher)
     # return [] if series_name.blank?
 
     app_id = ENV['RAKUTEN_APP_ID']
@@ -120,7 +122,7 @@ end
         title: title,
         author: first_author,
         publisherName: publisher,
-        booksGenreId: genre_id,
+        booksGenreId: rakuten_genre_id,
         page: page,
         sort: "+releaseDate",     
         applicationId: app_id,
@@ -259,12 +261,12 @@ end
   end
 
   def self.digital_item?(item)
-    genre_id = item["booksGenreId"].to_s
+    rakuten_genre_id = item["booksGenreId"].to_s
     title    = item["title"].to_s
     isbn     = item["isbn"].to_s
 
     # 1. Filter out Rakuten's E-Book genre tree (001025...)
-    return true if genre_id.start_with?("001025")
+    return true if rakuten_genre_id.start_with?("001025")
 
     # 2. Filter out titles containing explicit digital tags
     return true if title.match?(/（電子版）|【電子限定】|【電子書籍】|電子限定特典付き/i)

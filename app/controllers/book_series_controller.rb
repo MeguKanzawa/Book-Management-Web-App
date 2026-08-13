@@ -36,19 +36,17 @@ class BookSeriesController < ApplicationController
 
   # PATCH/PUT /book_series/1 or /book_series/1.json
   def update
-    respond_to do |format|
-      if @book_series.update(book_series_params)
-        format.html { redirect_to @book_series, notice: "Book series was successfully updated.", status: :see_other }
-        format.json { render :show, status: :ok, location: @book_series }
-      else
-        format.html { render :edit, status: :unprocessable_content }
-        format.json { render json: @book_series.errors, status: :unprocessable_content }
-      end
+    if @book_series.update(book_series_params)
+      notice_msg = @book_series.in_wishlist? ? "Wishlist updated!" : "Moved to Bookshelf!"
+      redirect_back fallback_location: root_path, notice: notice_msg
+    else
+      redirect_back fallback_location: root_path, alert: "Update failed."
     end
   end
 
   # DELETE /book_series/1 or /book_series/1.json
   def destroy
+    title = @book_series.title
     @book_series.destroy!
 
     respond_to do |format|
@@ -58,19 +56,12 @@ class BookSeriesController < ApplicationController
   end
 
   def create_from_search
-    series = BookSeries.find_or_initialize_by(title: params[:title], author: params[:author])
-    
-    series.assign_attributes(
-      publication: params[:publisher],
-      cover_image_url: params[:cover_image_url],
-      series_type: params[:series_type] || :manga,
-      in_wishlist: false
-    )
+    @series = BookSeries.find_or_create_from_rakuten(params, in_wishlist: false)
 
-    if series.save
-      redirect_back fallback_location: root_path, notice: "Added #{series.title} to Bookshelf!"
+    if @series.persisted?
+      redirect_back fallback_location: root_path, notice: "Added #{@series.title} to Bookshelf!"
     else
-      redirect_back fallback_location: root_path, alert: "Could not add series."
+      redirect_back fallback_location: root_path, alert: "Could not add to Bookshelf."
     end
   end
 
@@ -88,9 +79,13 @@ class BookSeriesController < ApplicationController
     end
 
     respond_to do |format|
-      format.html { redirect_to show_series_path(title: series.title), notice: "Added #{volumes_data.size} volumes to Bookshelf!" }
+      format.html { redirect_to search_series_path(title: series.title), notice: "Added #{volumes_data.size} volumes to Bookshelf!" }
       format.json { render json: { status: "success", count: volumes_data.size } }
     end
+  end
+
+  def set_book_series
+    @book_series = BookSeries.find(params[:id])
   end
 
   def update_metadata
@@ -100,20 +95,20 @@ class BookSeriesController < ApplicationController
     end
   end
 
-  private
-
-  def series_params
-    params.require(:book_series).permit(:series_status, :genre, :tracking_status, :wishlist_priority)
+  def book_series_params
+    params.require(:book_series).permit(
+      :title, 
+      :author, 
+      :publication, 
+      :series_status, 
+      :series_type, 
+      :genre, 
+      :tracking_status, 
+      :wishlist_priority, 
+      :in_wishlist, 
+      :cover_image_url, 
+      :rakuten_genre_id
+    )
   end
 
-  private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_book_series
-      @book_series = BookSeries.find(params.expect(:id))
-    end
-
-    # Only allow a list of trusted parameters through.
-    def book_series_params
-      params.expect(book_series: [ :title, :author, :publication, :series_status, :series_type, :series_genre, :tracking_status ])
-    end
 end

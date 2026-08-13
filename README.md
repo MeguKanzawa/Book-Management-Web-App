@@ -26,7 +26,7 @@ rails runner "pp RakutenBooksService.search_parent_series('悲劇の元凶')"
 ### Filters to Use
 
 - ISBN: Physical: .../9784758099141_1_3.jpg (Starts with 978), .../2100014829920.jpg (Starts with 2100)
-- genre_id: Physical Manga / Light Novels: 001001012 (Manga) and 001017006003 (Light Novels), Digital Copy Entries: Both entries in your list that contain (ノベル) and (コミカライズ) have genre_id: "001025002".
+- rakuten_genre_id: Physical Manga / Light Novels: 001001012 (Manga) and 001017006003 (Light Novels), Digital Copy Entries: Both entries in your list that contain (ノベル) and (コミカライズ) have rakuten_genre_id: "001025002".
 
 <!-- 
 Things you may want to cover:
