@@ -6,13 +6,17 @@
        showNotification: false,
        notificationMsg: '',
 
+       // Filter out already owned volumes when running selectAll
        selectAll() {
-         this.selectedVolumes = this.allVolumes.map(v => (v.volume_number || v['volume_number'] || '').toString());
+         this.selectedVolumes = this.allVolumes
+           .filter(v => !(v.owned || v['owned']))
+           .map(v => (v.volume_number || v['volume_number'] || '').toString());
        },
        deselectAll() {
          this.selectedVolumes = [];
        },
-       toggleVolume(volNum) {
+       toggleVolume(volNum, isOwned) {
+         if (isOwned) return; // Prevent selection of already collected volumes
          const strVol = volNum.toString();
          if (this.selectedVolumes.includes(strVol)) {
            this.selectedVolumes = this.selectedVolumes.filter(id => id !== strVol);
@@ -47,10 +51,10 @@
       <%= link_to "← Back to Search", search_path(query: @query), class: "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1" %>
       
       <div class="flex items-center gap-2">
-        <button @click="selectedVolumes.length === allVolumes.length ? deselectAll() : selectAll()" 
+        <button @click="selectedVolumes.length === allVolumes.filter(v => !(v.owned || v['owned'])).length ? deselectAll() : selectAll()" 
                 type="button"
-                class="text-xs font-semibold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">
-          <span x-text="selectedVolumes.length === allVolumes.length ? 'Deselect All' : 'Select All'"></span>
+                class="text-xs font-semibold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer">
+          <span x-text="selectedVolumes.length === allVolumes.filter(v => !(v.owned || v['owned'])).length && selectedVolumes.length > 0 ? 'Deselect All' : 'Select Uncollected'"></span>
         </button>
 
         <%= form_with url: add_volumes_book_series_path(@series_id || 0), method: :post, class: "inline", "@submit" => "triggerToast('Adding ' + selectedVolumes.length + ' volumes to Bookshelf...')" do |f| %>
@@ -81,7 +85,7 @@
         <h1 class="text-2xl font-bold text-slate-900 leading-snug">
           <%= @title.presence || @series_name %>
         </h1>
-        <div class="mt-2 text-xs text-slate-500 flex flex-col flex-wrap gap-x-4 gap-y-1">
+        <div class="mt-2 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
           <% if @author.present? %>
             <p><span class="font-semibold text-slate-700">Author:</span> <%= @author %></p>
           <% end %>
@@ -101,74 +105,68 @@
 
     <%# Volumes Grid %>
     <% if @volumes.present? %>
-      <div class="grid grid-cols-3 gap-4 mt-2">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
         <% @volumes.each do |volume| %>
           <% vol_title  = volume[:title] || volume["title"] %>
           <% vol_img    = volume[:image_url] || volume["image_url"] %>
           <% vol_num    = (volume[:volume_number] || volume["volume_number"]).to_i %>
-          <% vol_date   = volume[:release_date] || volume["release_date"] %>
-          <% vol_id     = volume[:id] || volume["id"] %>
+          <% vol_owned  = volume[:owned] || volume["owned"] %>
 
-          <div @click="toggleVolume(<%= vol_num %>)"
-               :class="selectedVolumes.includes('<%= vol_num %>') ? 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md' : 'border-slate-200 bg-white shadow-sm hover:shadow-md'"
-               class="rounded-2xl border border-indigo-600 p-2 flex flex-col justify-between cursor-pointer transition-all duration-200 group relative">
+          <div @click="toggleVolume(<%= vol_num %>, <%= vol_owned ? 'true' : 'false' %>)"
+               :class="{
+                 'border-emerald-200 bg-emerald-50/40 opacity-90 cursor-default': <%= vol_owned ? 'true' : 'false' %>,
+                 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md cursor-pointer': !<%= vol_owned ? 'true' : 'false' %> && selectedVolumes.includes('<%= vol_num %>'),
+                 'border-slate-200 bg-white shadow-sm hover:shadow-md cursor-pointer': !<%= vol_owned ? 'true' : 'false' %> && !selectedVolumes.includes('<%= vol_num %>')
+               }"
+               class="rounded-2xl border p-3 flex flex-col justify-between transition-all duration-200 group relative">
             
-            <%# Cover Image Frame with Visual Checkmark %>
-            <div class="w-full aspect-[2/3] bg-slate-100 rounded-xl overflow-hidden mb-3 relative flex items-center justify-center border border-slate-100 p-2">
+            <%# Cover Image Frame %>
+            <div class="w-full aspect-[2/3] bg-slate-100 rounded-xl overflow-hidden mb-3 relative flex items-center justify-center border border-slate-100">
               <% if vol_img.present? %>
-                <img src="<%= vol_img %>" alt="<%= vol_title %>" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <img src="<%= vol_img %>" alt="<%= vol_title %>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
               <% else %>
                 <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center bg-slate-50">
                   <span class="text-2xl mb-1">📖</span>
-                  <span class="text-xs font-medium">No Cover Image</span>
+                  <span class="text-xs font-medium">No Image</span>
                 </div>
               <% end %>
 
-              <%# Overlay Checkmark Badge when Selected %>
-              <div class="absolute top-2 right-2 w-6 h-6 p-2 rounded flex items-center justify-center text-xs font-bold shadow-md transition-all duration-200"
-                   :class="selectedVolumes.includes('<%= vol_num %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/80 text-transparent scale-90'">
-                ✓
-              </div>
+              <%# Collected Badge vs Selection Badge Overlay %>
+              <% if vol_owned %>
+                <div class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md flex items-center gap-1">
+                  ✓ Collected
+                </div>
+              <% else %>
+                <div class="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shadow-md transition-all duration-200"
+                     :class="selectedVolumes.includes('<%= vol_num %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/80 text-transparent scale-90'">
+                  ✓
+                </div>
+              <% end %>
             </div>
 
-            <%# Volume Specifics Section %>
-            <div class="flex flex-col justify-between flex-grow pt-1 space-y-2">
-              
-              <%# Volume Number Badge & Meta Tag %>
+            <%# Volume Info %>
+            <div class="flex flex-col justify-between flex-grow space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <% if vol_num > 0 %>
                   <span class="bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-xs px-2.5 py-1 rounded inline-block">
                     VOL <%= vol_num %>
                   </span>
                 <% else %>
-                  <span class="bg-slate-100 text-slate-600 font-medium text-xxs px-1.5 py-0.5 rounded-md inline-block">
-                    Special / Side Story
+                  <span class="bg-slate-100 text-slate-600 font-medium text-[10px] px-1.5 py-0.5 rounded-md inline-block">
+                    Special / Side
                   </span>
                 <% end %>
 
-                <% if vol_id.present? %>
-                  <span class="text-[10px] font-mono text-slate-400 truncate max-w-[100px]" title="ID: <%= vol_id %>">
-                    #<%= vol_id.to_s.last(8) %>
-                  </span>
+                <% if vol_owned %>
+                  <span class="text-[10px] font-semibold text-emerald-600">In Library</span>
                 <% end %>
               </div>
 
-              <%# Volume Full Title %>
               <h4 class="text-sm font-bold text-slate-800 line-clamp-2 leading-snug" title="<%= vol_title %>">
                 <%= vol_title %>
               </h4>
-
-              <%# Specific Metadata Details Block %>
-              <div class="pt-2 border-t border-slate-100 mt-auto text-xs text-slate-500 space-y-1">
-                <% if vol_date.present? %>
-                  <div class="flex items-center justify-between text-[11px]">
-                    <span class="text-slate-400 font-medium">Release Date:</span>
-                    <span class="font-semibold text-slate-700"><%= vol_date %></span>
-                  </div>
-                <% end %>
-              </div>
-
             </div>
+
           </div>
         <% end %>
       </div>

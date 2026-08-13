@@ -66,9 +66,15 @@
           <% end %>
 
           <div class="flex flex-wrap items-center gap-3 pt-2">
-            <a :href="'/search/series?title=' + encodeURIComponent(activeSeries.title)" 
-               class="inline-flex items-center gap-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-colors">
-              See More / Edit Volumes →
+            <a :href="'/search/series?' + new URLSearchParams({
+                title: activeSeries.title,
+                series_name: activeSeries.title,
+                author: activeSeries.author || '',
+                publisher: activeSeries.publication || '',
+                rakuten_genre_id: activeSeries.rakuten_genre_id || ''
+                }).toString()" 
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-colors">
+            See More / Edit Volumes →
             </a>
 
             <%# Move back to Wishlist %>

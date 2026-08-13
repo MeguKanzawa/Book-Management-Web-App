@@ -40,6 +40,8 @@
           <% s_img       = series[:image_url] || series["image_url"] %>
           <% s_genre     = series[:rakuten_genre_id] || series["rakuten_genre_id"] %>
 
+          <% existing_record = @existing_series_map[s_title] %>
+
           <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex gap-4 items-center">
             
             <%# Cover Image %>
@@ -90,7 +92,18 @@
                     ), 
                     class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
 
-                <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
+                <% if existing_record.present? %>
+                <% if existing_record.in_wishlist? %>
+                  <span class="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 px-3 py-2 rounded-lg">
+                    ⭐ In Wishlist
+                  </span>
+                <% else %>
+                  <span class="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-2 rounded-lg">
+                    📚 In Bookshelf (<%= existing_record.books.count %> vol)
+                  </span>
+                <% end %>
+                <% else %>
+                  <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
                   <%= hidden_field_tag :title, s_title %>
                   <%= hidden_field_tag :author, s_author %>
                   <%= hidden_field_tag :publisher, s_publisher %>
@@ -112,6 +125,9 @@
                     ⭐ Wishlist
                   </button>
                 <% end %>
+                <% end %>
+
+                
               </div>
 
             </div>
