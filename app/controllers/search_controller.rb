@@ -37,11 +37,14 @@ class SearchController < ApplicationController
 
     if @existing_series
       # Map collected/owned volume numbers (or titles)
-      owned_volume_numbers = @existing_series.books.pluck(:volume_num).compact.map(&:to_i)
+      existing_books_map = @existing_series.books.index_by(&:volume_num)
 
-      # 3. Mark each fetched volume with an :owned status
       @volumes.each do |vol|
-        vol[:owned] = owned_volume_numbers.include?(vol[:volume_number].to_i)
+        vol_num = (vol[:volume_number] || vol["volume_number"]).to_i
+        if (db_book = existing_books_map[vol_num])
+          vol[:book_status] = db_book.book_status
+          vol[:id] = db_book.id
+        end
       end
     end
 

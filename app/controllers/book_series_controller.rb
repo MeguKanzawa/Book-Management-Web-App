@@ -67,7 +67,6 @@ class BookSeriesController < ApplicationController
 
   def add_volumes
     series = BookSeries.find(params[:id])
-    volumes_data = params[:selected_volumes] || []
 
     if params[:selected_volumes].present?
       params[:selected_volumes].each do |vol_params|
@@ -79,14 +78,20 @@ class BookSeriesController < ApplicationController
       end
     end
 
+    volumes_data = params[:selected_volumes] || []
+    target_status = params[:book_status].presence || :owned
+
     volumes_data.each do |vol|
       series.books.find_or_create_by(volume_num: vol[:volume_number]) do |b|
         b.volume_title = vol[:title]
         b.image_url = vol[:image_url]
-        b.book_status = :owned
+        b.book_status = target_status
         b.isbn = vol[:isbn]
+        book.save!
       end
     end
+
+    
 
     respond_to do |format|
       format.html { redirect_to search_series_path(
