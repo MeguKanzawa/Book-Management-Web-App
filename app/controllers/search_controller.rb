@@ -17,12 +17,15 @@ class SearchController < ApplicationController
   end
 
   def show_series
-    @query = session[:query]
+    @query = session[:query] || params[:query]
     @title = params[:title]
     @series_name = params[:series_name]
     @rakuten_genre_id    = params[:rakuten_genre_id]
     @author      = params[:author]
     @publisher   = params[:publisher]
+
+    @existing_series = BookSeries.find_by(title: @title, author: @author)
+    @series_id       = @existing_series&.id || 0
   
     @volumes = RakutenBooksService.fetch_series_volumes(
       @title,
@@ -32,8 +35,6 @@ class SearchController < ApplicationController
       @publisher,
     )
 
-    @existing_series = BookSeries.find_by(title: @title, author: @author)
-    
     if @existing_series
       # Map collected/owned volume numbers (or titles)
       owned_volume_numbers = @existing_series.books.pluck(:volume_num).compact.map(&:to_i)

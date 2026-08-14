@@ -69,17 +69,36 @@ class BookSeriesController < ApplicationController
     series = BookSeries.find(params[:id])
     volumes_data = params[:selected_volumes] || []
 
+    if params[:selected_volumes].present?
+      params[:selected_volumes].each do |vol_params|
+        series.books.find_or_create_by(
+          volume_num: vol_params[:volume_num],
+          volume_title: vol_params[:title],
+          image_url: vol_params[:image_url],
+        )
+      end
+    end
+
     volumes_data.each do |vol|
       series.books.find_or_create_by(volume_num: vol[:volume_number]) do |b|
         b.volume_title = vol[:title]
         b.image_url = vol[:image_url]
-        b.release_date = vol[:release_date]
         b.book_status = :owned
+        b.isbn = vol[:isbn]
       end
     end
 
     respond_to do |format|
-      format.html { redirect_to search_series_path(title: series.title), notice: "Added #{volumes_data.size} volumes to Bookshelf!" }
+      format.html { redirect_to search_series_path(
+                      title:            series.title,
+                      author:           params[:author] || series.author,
+                      publisher:        params[:publisher] || series.publication,
+                      rakuten_genre_id: params[:rakuten_genre_id] || series.rakuten_genre_id,
+                      query:            params[:query]
+                    ), 
+                    notice: "Added #{volumes_data.size} volumes to Bookshelf!", 
+                    status: :see_other 
+                  }
       format.json { render json: { status: "success", count: volumes_data.size } }
     end
   end
