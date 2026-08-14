@@ -66,45 +66,63 @@ class BookSeriesController < ApplicationController
   end
 
   def add_volumes
-    series = BookSeries.find(params[:id])
+    if params[:id].present? && params[:id] != "0"
+      @series = BookSeries.find_by(id: params[:id])
+    end
 
-    if params[:selected_volumes].present?
+    @series ||= BookSeries.find_or_create_by!(title: params[:title]) do |s|
+      s.author = params[:author]
+      s.publication = params[:publisher]
+      s.rakuten_genre_id = params[:rakuten_genre_id]
+    end
+
+    added_count = 0
+
+    # Process only the posted selected_volumes array
+    if params[:selected_volumes].is_a?(Array)
       params[:selected_volumes].each do |vol_params|
-        series.books.find_or_create_by(
-          volume_num: vol_params[:volume_num],
-          volume_title: vol_params[:title],
-          image_url: vol_params[:image_url],
-        )
+        next if vol_params[:title].blank? && vol_params[:isbn].blank?
+
+        # Uniquely match existing books by ISBN (preferable) or title
+        book = if vol_params[:isbn].present?
+               @series.books.find_or_initialize_by(isbn: vol_params[:isbn])
+             elsif vol_params[:title].present?
+               @series.books.find_or_initialize_by(volume_title: vol_params[:title])
+             elsif vol_num.present?
+               @series.books.find_or_initialize_by(volume_num: vol_num)
+             else
+               @series.books.build
+             end
+
+        vol_num = vol_params[:volume_number].presence
+        # Set to nil if allowed by model validation, or fallback to 0
+        book.volume_num   = vol_num ? vol_num.to_i : nil
+        book.volume_title = vol_params[:title]
+        book.subtitle     = vol_params[:subtitle] if vol_params[:subtitle].present?
+        book.image_url    = vol_params[:image_url]
+        book.release_date = vol_params[:release_date]
+        book.book_status  = params[:book_status] || :owned
+
+        if book.save
+          added_count += 1
+        end
       end
     end
-
-    volumes_data = params[:selected_volumes] || []
-    target_status = params[:book_status].presence || :owned
-
-    volumes_data.each do |vol|
-      series.books.find_or_create_by(volume_num: vol[:volume_number]) do |b|
-        b.volume_title = vol[:title]
-        b.image_url = vol[:image_url]
-        b.book_status = target_status
-        b.isbn = vol[:isbn]
-        b.save!
-      end
-    end
-
-    
 
     respond_to do |format|
-      format.html { redirect_to search_series_path(
-                      title:            series.title,
-                      author:           params[:author] || series.author,
-                      publisher:        params[:publisher] || series.publication,
-                      rakuten_genre_id: params[:rakuten_genre_id] || series.rakuten_genre_id,
-                      query:            params[:query]
-                    ), 
-                    notice: "Added #{volumes_data.size} volumes to Bookshelf!", 
-                    status: :see_other 
-                  }
-      format.json { render json: { status: "success", count: volumes_data.size } }
+      format.html { 
+        redirect_to search_series_path(
+        series_id: @series.id,  
+        title:            @series.title,
+          author:           params[:author] || @series.author,
+          publisher:        params[:publisher] || @series.publication,
+          rakuten_genre_id: params[:rakuten_genre_id] || @series.rakuten_genre_id,
+          query:            params[:query]
+        ), 
+        notice: "Added #{added_count} volume(s) to Bookshelf!", 
+        status: :see_other 
+      }
+      format.json { render json: { status: "success", count: added_count } }
     end
   end
 
@@ -136,5 +154,4 @@ class BookSeriesController < ApplicationController
       :rakuten_genre_id
     )
   end
-
 end

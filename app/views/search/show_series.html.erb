@@ -7,21 +7,35 @@
        showNotification: false,
        notificationMsg: '',
 
+       // Robust identifier helper using ISBN first, then volume number, then title
+       getVolKey(v) {
+         if (!v) return '';
+         const isbn = v.isbn || v['isbn'];
+         if (isbn && isbn.length > 0) return isbn.toString();
+         
+         const volNum = v.volume_number || v['volume_number'];
+         if (volNum !== undefined && volNum !== null && volNum !== '' && parseInt(volNum) > 0) {
+           return volNum.toString();
+         }
+         
+         return (v.title || v['title'] || '').toString();
+       },
+
        selectAll() {
          this.selectedVolumes = this.allVolumes
-           .filter(v => !v.owned && (!v.status && !v.book_status))
-           .map(v => (v.volume_number || v['volume_number'] || '').toString());
+           .filter(v => !v.owned && !v.status && !v.book_status)
+           .map(v => this.getVolKey(v));
        },
        deselectAll() {
          this.selectedVolumes = [];
        },
-       toggleVolume(volNum, isAdded) {
-         if (isAdded) return;
-         const strVol = volNum.toString();
-         if (this.selectedVolumes.includes(strVol)) {
-           this.selectedVolumes = this.selectedVolumes.filter(id => id !== strVol);
+       toggleVolume(volKey) {
+         if (!volKey) return;
+         const strKey = volKey.toString();
+         if (this.selectedVolumes.includes(strKey)) {
+           this.selectedVolumes = this.selectedVolumes.filter(id => id !== strKey);
          } else {
-           this.selectedVolumes.push(strVol);
+           this.selectedVolumes.push(strKey);
          }
        },
        triggerToast(msg) {
@@ -59,7 +73,7 @@
           <span x-text="selectedVolumes.length > 0 ? 'Deselect All' : 'Select Uncollected'"></span>
         </button>
 
-        <%= form_with url: add_volumes_book_series_path(@series_id || 0), method: :post, class: "flex items-center gap-1.5", data: { turbo: false }, "@submit" => "triggerToast('Adding ' + selectedVolumes.length + ' volumes to Bookshelf...')" do |f| %>
+        <%= form_with url: add_volumes_book_series_path(@series_id.presence || 0), method: :post, class: "flex items-center gap-1.5", data: { turbo: false }, "@submit" => "triggerToast('Adding ' + selectedVolumes.length + ' volumes...')" do |f| %>
           <%= hidden_field_tag :title, @title %>
           <%= hidden_field_tag :author, @author %>
           <%= hidden_field_tag :publisher, @publisher %>
@@ -68,12 +82,15 @@
 
           <input type="hidden" name="book_status" :value="targetStatus">
 
-          <template x-for="vol in allVolumes.filter(v => selectedVolumes.includes((v.volume_number || v['volume_number'] || '').toString()))" :key="vol.volume_number || vol['volume_number']">
+          <%# Selected volumes template generator %>
+          <template x-for="vol in allVolumes.filter(v => selectedVolumes.includes(getVolKey(v)))" :key="getVolKey(vol)">
             <div>
-              <input type="hidden" name="selected_volumes[][volume_number]" :value="vol.volume_number || vol['volume_number']">
-              <input type="hidden" name="selected_volumes[][title]" :value="vol.title || vol['title']">
-              <input type="hidden" name="selected_volumes[][image_url]" :value="vol.image_url || vol['image_url']">
-              <input type="hidden" name="selected_volumes[][release_date]" :value="vol.release_date || vol['release_date']">
+              <input type="hidden" name="selected_volumes[][volume_number]" :value="vol.volume_number || vol['volume_number'] || ''">
+              <input type="hidden" name="selected_volumes[][title]" :value="vol.title || vol['title'] || ''">
+              <input type="hidden" name="selected_volumes[][subtitle]" :value="vol.subtitle || vol['subtitle'] || ''">
+              <input type="hidden" name="selected_volumes[][isbn]" :value="vol.isbn || vol['isbn'] || ''">
+              <input type="hidden" name="selected_volumes[][image_url]" :value="vol.image_url || vol['image_url'] || ''">
+              <input type="hidden" name="selected_volumes[][release_date]" :value="vol.release_date || vol['release_date'] || ''">
             </div>
           </template>
 
@@ -93,6 +110,9 @@
     <div class="space-y-2.5">
       <div class="flex items-center gap-2">
         <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">Series Overview</span>
+        <% if @series_id.present? && @series_id != 0 %>
+          <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">✓ On Shelf</span>
+        <% end %>
       </div>
       <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
         <%= @title.presence || @series_name %>
@@ -112,7 +132,22 @@
       </div>
     </div>
 
-    <div class="shrink-0">
+    <div class="flex items-center gap-3 shrink-0">
+      <%# Add to Shelf Button in Show view if not created yet %>
+      <% unless @series_id.present? && @series_id != 0 %>
+        <%= form_with url: add_series_to_bookshelf_path, method: :post, data: { turbo: false } do %>
+          <%= hidden_field_tag :title, @title %>
+          <%= hidden_field_tag :author, @author %>
+          <%= hidden_field_tag :publisher, @publisher %>
+          <%= hidden_field_tag :rakuten_genre_id, @rakuten_genre_id %>
+          <%= hidden_field_tag :cover_image_url, @cover_image_url %>
+          <%= hidden_field_tag :series_type, :manga %>
+          <button type="submit" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl transition-colors shadow-xs cursor-pointer flex items-center gap-1.5">
+            <span>+ Add Series to Shelf</span>
+          </button>
+        <% end %>
+      <% end %>
+
       <div class="bg-indigo-50/50 border border-indigo-100/80 px-5 py-3.5 rounded-2xl text-center">
         <span class="block text-2xl font-black text-indigo-600"><%= @volumes.to_a.size %></span>
         <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Volumes Found</span>
@@ -124,22 +159,37 @@
   <% if @volumes.present? %>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       <% @volumes.each do |volume| %>
-        <% vol_title  = volume[:title] || volume["title"] %>
-        <% vol_img    = volume[:image_url] || volume["image_url"] %>
-        <% vol_num    = (volume[:volume_number] || volume["volume_number"]).to_i %>
-        <% vol_date   = volume[:release_date] || volume["release_date"] %>
-        <% vol_id     = volume[:id] || volume["id"] %>
-        <% vol_isbn   = volume[:isbn] %>
-        <% vol_subtitle = volume[:subtitle] %>
+        <% vol_title    = volume[:title] || volume["title"] %>
+        <% vol_img      = volume[:image_url] || volume["image_url"] %>
+        <% vol_num      = (volume[:volume_number] || volume["volume_number"]) %>
+        <% vol_num_i    = vol_num.to_i %>
+        <% vol_date     = volume[:release_date] || volume["release_date"] %>
+        <% vol_id       = volume[:id] || volume["id"] %>
+        <% vol_isbn     = volume[:isbn] || volume["isbn"] %>
+        <% vol_subtitle = volume[:subtitle] || volume["subtitle"] %>
         
-        <% raw_status = volume[:book_status] || volume["book_status"] || volume[:status] || volume["status"] %>
+        <%# Fallback chain for JavaScript Keying %>
+        <% vol_key = vol_isbn.presence || (vol_num_i ? "vol_#{vol_num_i}" : vol_title) %>
+
+        <%# Find matching existing book from DB series %>
+        <% existing_book = if @series_id.present? && @series_id != 0 && @series_record
+                              if vol_isbn.present?
+                                @series_record.books.find { |b| b.isbn == vol_isbn }
+                              elsif vol_title.present?
+                                @series_record.books.find { |b| b.volume_title == vol_title }
+                              elsif vol_num_i.present?
+                                @series_record.books.find { |b| b.volume_num == vol_num_i }
+                              end
+                            end %>
+
+        <% raw_status = existing_book&.book_status || volume[:book_status] || volume["book_status"] %>
         <% vol_status = raw_status.present? ? raw_status.to_s.downcase.to_sym : nil %>
         <% is_in_bookshelf = vol_status.present? %>
         
         <div class="rounded-2xl border border-slate-200/80 bg-white p-2.5 flex flex-col justify-between transition-all duration-200 group relative shadow-xs"
              <% unless is_in_bookshelf %>
-               @click="toggleVolume(<%= vol_num %>, false)"
-               :class="selectedVolumes.includes('<%= vol_num %>') ? 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md' : 'hover:shadow-md cursor-pointer'"
+               @click="toggleVolume('<%= j vol_key %>')"
+               :class="selectedVolumes.includes('<%= j vol_key %>') ? 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md' : 'hover:shadow-md cursor-pointer'"
              <% end %>>
 
           <div class="w-full aspect-[2/3] bg-slate-100 rounded-xl overflow-hidden mb-2.5 relative flex items-center justify-center border border-slate-100">
@@ -166,7 +216,7 @@
               <% end %>
             <% else %>
               <div class="absolute top-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all duration-200"
-                   :class="selectedVolumes.includes('<%= vol_num %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/90 text-transparent scale-90'">
+                   :class="selectedVolumes.includes('<%= j vol_key %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/90 text-transparent scale-90'">
                 ✓
               </div>
             <% end %>
@@ -174,9 +224,9 @@
 
           <div class="flex flex-col justify-between flex-grow space-y-1.5">
             <div class="flex items-center justify-between gap-1">
-              <% if vol_num > 0 %>
+              <% if vol_num_i > 0 %>
                 <span class="bg-indigo-50 text-indigo-700 border border-indigo-100/80 font-extrabold text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
-                  VOL <%= vol_num %>
+                  VOL <%= vol_num_i %>
                 </span>
               <% elsif vol_subtitle.present? %>
                 <span class="bg-violet-50 text-violet-700 border border-violet-100/80 font-extrabold text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
@@ -188,13 +238,11 @@
                 </span>
               <% end %>
 
-              <%# Hidden on mobile, visible on tablet/desktop (sm+) %>
               <% if vol_isbn.present? %>
-                <span class="hidden sm:inline-block text-[10px] font-mono font-medium text-slate-400 truncate max-w-[105px]" title="ISBN: <%= vol_id %>">
+                <span class="hidden sm:inline-block text-[10px] font-mono font-medium text-slate-400 truncate max-w-[105px]" title="ISBN: <%= vol_isbn %>">
                   <%= vol_isbn %>
                 </span>
               <% end %>
-
             </div>
 
             <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight" title="<%= vol_title %>">
