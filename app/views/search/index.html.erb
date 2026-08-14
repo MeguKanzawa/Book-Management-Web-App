@@ -1,117 +1,100 @@
 <%# app/views/search/index.html.erb %>
-<div class="min-h-screen bg-slate-50 pb-12">
+<div class="max-w-5xl mx-auto pb-12">
   
-  <%# Sticky Search Header %>
-  <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
-    <div class="max-w-md mx-auto">
-      <h1 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-        📚 <span>BookShelf Tracker</span>
-      </h1>
-      
-      <%= form_with url: search_path, method: :get, local: true, class: "flex gap-2" do |f| %>
-        <%= f.text_field :query, 
-            value: params[:query], 
-            placeholder: "Search Japanese manga or book title...", 
-            class: "w-full px-4 py-3 bg-slate-100 border-0 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white text-base transition-all",
-            autofocus: true %>
-        
-        <%= f.submit "Search", 
-            class: "bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-3 rounded-xl text-base active:scale-95 transition-transform cursor-pointer shadow-sm shadow-indigo-200" %>
+  <%# Query Result Bar %>
+  <% if params[:query].present? %>
+    <div class="mb-6 flex items-center justify-between border-b border-slate-200/60 pb-3">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Search Results</h2>
+        <p class="text-xs text-slate-500">Query: "<span class="font-semibold text-slate-700"><%= params[:query] %></span>"</p>
+      </div>
+      <% if @found_series_by_genre.present? %>
+        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+          <%= @found_series_by_genre.size %> Series Found
+        </span>
       <% end %>
     </div>
-  </div>
+  <% end %>
 
   <%# Search Results Area %>
-  <div class="max-w-md mx-auto px-4 mt-4">
-    <% if @found_series_by_genre.present? %>
-      
-      <div class="mb-3 flex items-center justify-between">
-        <span class="text-xs font-bold text-slate-500">
-          Found <%= @found_series_by_genre.size %> Series
-        </span>
-      </div>
+  <% if @found_series_by_genre.present? %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <% @found_series_by_genre.values.each do |series| %>
+        <% s_title     = series[:title] || series["title"] %>
+        <% s_name      = series[:series_name] || series["series_name"] %>
+        <% s_author    = series[:author] || series["author"] %>
+        <% s_publisher = series[:publisher] || series["publisher"] %>
+        <% s_img       = series[:image_url] || series["image_url"] %>
+        <% s_genre     = series[:rakuten_genre_id] || series["rakuten_genre_id"] %>
 
-      <div class="space-y-3">
-        <% @found_series_by_genre.values.each do |series| %>
-          <% s_title     = series[:title] || series["title"] %>
-          <% s_name      = series[:series_name] || series["series_name"] %>
-          <% s_author    = series[:author] || series["author"] %>
-          <% s_publisher = series[:publisher] || series["publisher"] %>
-          <% s_img       = series[:image_url] || series["image_url"] %>
-          <% s_genre     = series[:rakuten_genre_id] || series["rakuten_genre_id"] %>
+        <% existing_record = @existing_series_map[s_title] %>
 
-          <% existing_record = @existing_series_map[s_title] %>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex gap-4 items-start">
+          
+          <%# Cover Image %>
+          <div class="w-20 h-28 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-100 relative">
+            <% if s_img.present? %>
+              <img src="<%= s_img %>" alt="<%= s_title %>" class="w-full h-full object-cover">
+            <% else %>
+              <span class="text-[10px] text-slate-400 font-medium">No Image</span>
+            <% end %>
+          </div>
 
-          <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex gap-4 items-center">
-            
-            <%# Cover Image %>
-            <div class="w-20 h-28 bg-slate-200 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center text-center p-1">
-              <% if s_img.present? %>
-                <img src="<%= s_img %>" alt="<%= s_title %>" class="w-full h-full object-cover">
-              <% else %>
-                <span class="text-[10px] text-slate-400 font-medium">No Image</span>
-              <% end %>
-            </div>
-
-            <%# Series Metadata & Actions %>
-            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-              <h3 class="font-bold text-slate-900 text-base leading-tight line-clamp-2">
+          <%# Series Metadata & Actions %>
+          <div class="flex-1 min-w-0 flex flex-col justify-between h-full min-h-[7rem]">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm leading-snug line-clamp-2" title="<%= s_title %>">
                 <%= s_title %>
               </h3>
               
-              <div class="mt-1">
+              <div class="mt-1 space-y-0.5">
                 <% if s_author.present? %>
-                  <p class="text-sm text-slate-600 font-medium truncate">
+                  <p class="text-xs text-slate-600 font-medium truncate">
                     <%= s_author %>
                   </p>
                 <% end %>
                 
                 <% if s_publisher.present? %>
-                  <p class="text-xs text-slate-400 truncate mt-0.5">
+                  <p class="text-[11px] text-slate-400 truncate">
                     <%= s_publisher %>
                   </p>
                 <% end %>
-
-                <% if s_genre.present? %>
-                  <span class="inline-block mt-1 text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-semibold">
-                    Genre: <%= s_genre %>
-                  </span>
-                <% end %>
               </div>
+            </div>
 
-              <%# Action Buttons %>
-              <div class="flex items-center gap-1 mt-3 pt-2 border-t border-slate-100 flex-wrap">
-                <%= link_to "Select Series", 
-                    search_series_path(
-                      title: s_title,
-                      series_name: s_name, 
-                      rakuten_genre_id: s_genre, 
-                      author: s_author, 
-                      publisher: s_publisher,
-                      query: params[:query]
-                    ), 
-                    class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors" %>
+            <%# Action Buttons %>
+            <div class="flex items-center gap-1.5 mt-3 pt-2 border-t border-slate-100 flex-wrap">
+              <%= link_to "Select Series", 
+                  search_series_path(
+                    title: s_title,
+                    series_name: s_name, 
+                    rakuten_genre_id: s_genre, 
+                    author: s_author, 
+                    publisher: s_publisher,
+                    query: params[:query]
+                  ), 
+                  class: "inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-xs" %>
 
-                <% if existing_record.present? %>
+              <% if existing_record.present? %>
                 <% if existing_record.in_wishlist? %>
-                  <span class="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-100 px-3 py-2 rounded-lg">
-                    ⭐ In Wishlist
+                  <span class="inline-flex items-center text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg">
+                    ★ Wishlist
                   </span>
                 <% else %>
-                  <span class="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-2 rounded-lg">
-                    📚 In Bookshelf (<%= existing_record.books.count %> vol)
+                  <span class="inline-flex items-center text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg">
+                    ✓ Bookshelf (<%= existing_record.books.count %>)
                   </span>
                 <% end %>
-                <% else %>
-                  <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
+              <% else %>
+                <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
                   <%= hidden_field_tag :title, s_title %>
                   <%= hidden_field_tag :author, s_author %>
                   <%= hidden_field_tag :publisher, s_publisher %>
                   <%= hidden_field_tag :rakuten_genre_id, s_genre%>
                   <%= hidden_field_tag :cover_image_url, s_img %>
                   <%= hidden_field_tag :series_type, :manga %>
-                  <button type="submit" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                    + Bookshelf
+                  <button type="submit" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer border border-slate-200/60">
+                    + Shelf
                   </button>
                 <% end %>
 
@@ -121,37 +104,44 @@
                   <%= hidden_field_tag :publisher, s_publisher %>
                   <%= hidden_field_tag :rakuten_genre_id, s_genre%>
                   <%= hidden_field_tag :cover_image_url, s_img %>
-                  <button type="submit" class="text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 py-2 rounded-lg transition-colors cursor-pointer">
-                    ⭐ Wishlist
+                  <button type="submit" class="text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer border border-amber-200/60">
+                    ★ Wishlist
                   </button>
                 <% end %>
-                <% end %>
-
-                
-              </div>
-
+              <% end %>
             </div>
 
           </div>
-        <% end %>
-      </div>
 
-    <% elsif params[:query].present? %>
-      <%# No Results Found State %>
-      <div class="text-center py-12">
-        <p class="text-4xl mb-2">🔍</p>
-        <h3 class="font-bold text-slate-700 text-lg">No books found</h3>
-        <p class="text-slate-400 text-sm max-w-xs mx-auto mt-1">We couldn't find anything matching "<%= params[:query] %>".</p>
-      </div>
+        </div>
+      <% end %>
+    </div>
 
-    <% else %>
-      <%# Initial Empty Search State %>
-      <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 p-6 mt-4">
-        <p class="text-4xl mb-3">📖</p>
-        <h3 class="font-bold text-slate-800 text-lg">Your Personal Bookshelf</h3>
-        <p class="text-slate-500 text-sm max-w-xs mx-auto mt-1">Search an ongoing manga or novel title above to pull data directly from the API.</p>
+  <% elsif params[:query].present? %>
+    <%# No Results State %>
+    <div class="text-center py-16 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs max-w-md mx-auto">
+      <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
       </div>
-    <% end %>
-  </div>
+      <h3 class="font-bold text-slate-800 text-base">No titles found</h3>
+      <p class="text-slate-400 text-xs max-w-xs mx-auto mt-1">We couldn't find anything matching "<%= params[:query] %>". Try searching with a Japanese name or main title keyword.</p>
+    </div>
+
+  <% else %>
+    <%# Initial Hero State %>
+    <div class="text-center py-20 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-xs max-w-lg mx-auto">
+      <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-xs">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      </div>
+      <h3 class="font-black text-slate-900 text-xl tracking-tight">Explore Books & Manga</h3>
+      <p class="text-slate-500 text-xs max-w-sm mx-auto mt-2 leading-relaxed">
+        Use the search bar above to query ongoing series directly from Rakuten API and add volumes straight to your personal shelf.
+      </p>
+    </div>
+  <% end %>
 
 </div>

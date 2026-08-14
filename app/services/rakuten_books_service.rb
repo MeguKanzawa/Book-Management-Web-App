@@ -160,18 +160,23 @@ end
           
           p title
           p vol_title
+          p item['isbn']
           p "/n"
 
           vol_num = extract_volume_number(vol_title, title) || 0
           next if vol_num < 0 || vol_num > 500
           # p "passed volume number check"
 
+          isbn = item["isbn"].presence || item["isbnNum"].presence || item["ISBN"].presence
+
+          vol_id = isbn.present? ? isbn.to_s : SecureRandom.hex(4)
         
           image_url = item["largeImageUrl"] || item["mediumImageUrl"]
           image_url = nil if image_url&.include?("nowprinting")
 
           all_volumes << {
-            id: "#{item['isbn'] || SecureRandom.hex(4)}",
+            id: vol_id,
+            isbn: isbn,
             title: normalized_volume,
             volume_number: vol_num,
             image_url: image_url,

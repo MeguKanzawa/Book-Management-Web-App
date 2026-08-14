@@ -1,5 +1,5 @@
 <%# app/views/search/show_series.html.erb %>
-<div class="min-h-screen bg-slate-50 pb-16"
+<div class="max-w-5xl mx-auto pb-16 font-sans text-slate-800"
      x-data="{ 
        selectedVolumes: [],
        targetStatus: 'owned',
@@ -31,7 +31,7 @@
        }
      }">
 
-  <%# Notification Indicator Toast %>
+  <%# Notification Toast %>
   <div x-show="showNotification" 
        x-transition:enter="transition ease-out duration-300 transform"
        x-transition:enter-start="opacity-0 translate-y-[-20px]"
@@ -39,37 +39,35 @@
        x-transition:leave="transition ease-in duration-200 transform"
        x-transition:leave-start="opacity-100 translate-y-0"
        x-transition:leave-end="opacity-0 translate-y-[-20px]"
-       class="fixed top-16 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700"
+       class="fixed top-20 right-4 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700"
        style="display: none;">
     <span class="text-emerald-400 text-base">✓</span>
     <span x-text="notificationMsg"></span>
   </div>
 
-  <%# Header with Back Navigation & Selection Controls %>
-  <div class="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 shadow-sm">
-    <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
-      <%= link_to "← Back to Search", search_path(query: @query), class: "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1" %>
+  <%# DOCKED SUB-TOOLBAR %>
+  <div class="sticky top-16 z-40 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 transition-all">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <%= link_to search_path(query: @query), class: "text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200/80 shadow-xs" do %>
+        <span>← Back to Search</span>
+      <% end %>
       
       <div class="flex items-center gap-2">
         <button @click="selectedVolumes.length > 0 ? deselectAll() : selectAll()" 
                 type="button"
-                class="text-xs font-semibold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg transition-colors border border-slate-200/80 shadow-xs">
           <span x-text="selectedVolumes.length > 0 ? 'Deselect All' : 'Select Uncollected'"></span>
         </button>
 
         <%= form_with url: add_volumes_book_series_path(@series_id || 0), method: :post, class: "flex items-center gap-1.5", data: { turbo: false }, "@submit" => "triggerToast('Adding ' + selectedVolumes.length + ' volumes to Bookshelf...')" do |f| %>
-  
-          <%# Series Metadata Hidden Fields %>
           <%= hidden_field_tag :title, @title %>
           <%= hidden_field_tag :author, @author %>
           <%= hidden_field_tag :publisher, @publisher %>
           <%= hidden_field_tag :rakuten_genre_id, @rakuten_genre_id %>
           <%= hidden_field_tag :query, @query %>
 
-          <%# Status Mapping %>
           <input type="hidden" name="book_status" :value="targetStatus">
 
-          <%# Volume Payload Loop %>
           <template x-for="vol in allVolumes.filter(v => selectedVolumes.includes((v.volume_number || v['volume_number'] || '').toString()))" :key="vol.volume_number || vol['volume_number']">
             <div>
               <input type="hidden" name="selected_volumes[][volume_number]" :value="vol.volume_number || vol['volume_number']">
@@ -79,13 +77,10 @@
             </div>
           </template>
 
-        
-          
-          <%# Submit Button %>
           <button type="submit" 
                   :disabled="selectedVolumes.length === 0" 
-                  :class="selectedVolumes.length > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'" 
-                  class="text-xs font-bold px-3 py-2 rounded-lg transition-all cursor-pointer">
+                  :class="selectedVolumes.length > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs' : 'bg-slate-200 text-slate-400 cursor-not-allowed'" 
+                  class="text-xs font-bold px-3.5 py-1.5 rounded-lg transition-all cursor-pointer">
             Add (<span x-text="selectedVolumes.length"></span>)
           </button>
         <% end %>
@@ -93,154 +88,144 @@
     </div>
   </div>
 
-  <%# Series Overview Header %>
-  <div class="max-w-4xl mx-auto px-4 mt-6">
-    <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-6 flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900 leading-snug">
-          <%= @title.presence || @series_name %>
-        </h1>
-        <div class="mt-2 text-xs text-slate-500 flex flex-col flex-wrap gap-x-4 gap-y-1">
-          <% if @author.present? %>
-            <p><span class="font-semibold text-slate-700">Author:</span> <%= @author %></p>
-          <% end %>
-          <% if @publisher.present? %>
-            <p><span class="font-semibold text-slate-700">Publisher:</span> <%= @publisher %></p>
-          <% end %>
-          <% if @rakuten_genre_id.present? %>
-            <p><span class="font-semibold text-slate-700">Genre ID:</span> <%= @rakuten_genre_id %></p>
-          <% end %>
-        </div>
+  <%# HERO SERIES HEADER %>
+  <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs mb-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="space-y-2.5">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">Series Overview</span>
       </div>
-
-      <span class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full shrink-0">
-        <%= @volumes.to_a.size %> Volumes Found
-      </span>
-    </div>
-
-    <%# Volumes Grid %>
-    <% if @volumes.present? %>
-      <div class="grid grid-cols-3 gap-4 mt-2">
-        <% @volumes.each do |volume| %>
-          <% vol_title  = volume[:title] || volume["title"] %>
-          <% vol_img    = volume[:image_url] || volume["image_url"] %>
-          <% vol_num    = (volume[:volume_number] || volume["volume_number"]).to_i %>
-          <% vol_date   = volume[:release_date] || volume["release_date"] %>
-          <% vol_id     = volume[:id] || volume["id"] %>
-          
-          <%# Status normalization %>
-          <% raw_status = volume[:book_status] || volume["book_status"] || volume[:status] || volume["status"] %>
-          <% vol_status = raw_status.present? ? raw_status.to_s.downcase.to_sym : nil %>
-          <% is_in_bookshelf = vol_status.present? %>
-          
-          <div class="rounded-2xl border border-slate-200 bg-white p-2 flex flex-col justify-between transition-all duration-200 group relative shadow-sm"
-               <% unless is_in_bookshelf %>
-                 @click="toggleVolume(<%= vol_num %>, false)"
-                 :class="selectedVolumes.includes('<%= vol_num %>') ? 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md' : 'hover:shadow-md cursor-pointer'"
-               <% end %>>
-  
-            <%# Cover Image Frame with Overlay Badge %>
-            <div class="w-full aspect-[2/3] bg-slate-100 rounded-xl overflow-hidden mb-3 relative flex items-center justify-center border border-slate-100 p-2">
-              <% if vol_img.present? %>
-                <img src="<%= vol_img %>" alt="<%= vol_title %>" class="w-full h-full object-cover <%= 'group-hover:scale-105' unless is_in_bookshelf %> transition-transform duration-300">
-              <% else %>
-                <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center bg-slate-50">
-                  <span class="text-2xl mb-1">📖</span>
-                  <span class="text-xs font-medium">No Cover Image</span>
-                </div>
-              <% end %>
-
-              <%# TOP-RIGHT BADGE: Shows status if added, or selection checkmark if unadded %>
-              <% if is_in_bookshelf %>
-                <% case vol_status %>
-                <% when :owned %>
-                  <div class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">✓ Owned</div>
-                <% when :wishlist %>
-                  <div class="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">★ Wishlist</div>
-                <% when :ignored %>
-                  <div class="absolute top-2 right-2 bg-slate-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">✕ Ignored</div>
-                <% when :sold %>
-                  <div class="absolute top-2 right-2 bg-rose-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">$ Sold</div>
-                <% else %>
-                  <div class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">✓ In Bookshelf</div>
-                <% end %>
-              <% else %>
-                <div class="absolute top-2 right-2 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shadow-md transition-all duration-200"
-                     :class="selectedVolumes.includes('<%= vol_num %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/80 text-transparent scale-90'">
-                  ✓
-                </div>
-              <% end %>
-            </div>
-
-            <%# Volume Specifics Section %>
-            <div class="flex flex-col justify-between flex-grow pt-1 space-y-2">
-              
-              <%# Volume Number Badge & Meta Tag %>
-              <div class="flex items-center justify-between gap-2">
-                <% if vol_num > 0 %>
-                  <span class="bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-xs px-2.5 py-1 rounded inline-block">
-                    VOL <%= vol_num %>
-                  </span>
-                <% else %>
-                  <span class="bg-slate-100 text-slate-600 font-medium text-xxs px-1.5 py-0.5 rounded-md inline-block">
-                    Special / Side Story
-                  </span>
-                <% end %>
-
-                <% if vol_id.present? %>
-                  <span class="text-[10px] font-mono text-slate-400 truncate max-w-[100px]" title="ID: <%= vol_id %>">
-                    #<%= vol_id.to_s.last(8) %>
-                  </span>
-                <% end %>
-              </div>
-
-              <%# Volume Full Title %>
-              <h4 class="text-sm font-bold text-slate-800 line-clamp-2 leading-snug" title="<%= vol_title %>">
-                <%= vol_title %>
-              </h4>
-
-              <%# INDIVIDUAL STATUS DROPDOWN %>
-              <% if is_in_bookshelf && vol_id.present? %>
-                <div class="pt-2 border-t border-slate-100 mt-auto" @click.stop>
-                  <%= form_with model: Book.new, url: book_path(vol_id), method: :patch, data: {turbo: false}, class: "w-full" do |f| %>
-                    <%= hidden_field_tag :redirect_to_series, true %>
-                    <%= hidden_field_tag :title, @title %>
-                    <%= hidden_field_tag :author, @author %>
-                    <%= hidden_field_tag :publisher, @publisher %>
-                    <%= hidden_field_tag :rakuten_genre_id, @rakuten_genre_id %>
-                    <%= hidden_field_tag :query, @query %>
-                    <input type="hidden" name="selected_volumes[][volume_number]" value="<%= vol_num %>">
-                    <input type="hidden" name="selected_volumes[][title]" value="<%= vol_title %>">
-                    <input type="hidden" name="selected_volumes[][image_url]" value="<%= vol_img %>">
-
-                    <label class="text-[10px] font-semibold text-slate-400 block mb-1">Status:</label>
-                    <select name="book[book_status]" 
-                            onchange="this.form.submit()" 
-                            class="w-full text-xs font-medium border border-slate-200 rounded-md px-2 py-1 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                      <option value="owned" <%= 'selected' if vol_status.to_s == 'owned' %>>Owned</option>
-                      <option value="wishlist" <%= 'selected' if vol_status.to_s == 'wishlist' %>>Wishlist</option>
-                      <option value="ignored" <%= 'selected' if vol_status.to_s == 'ignored' %>>Ignored</option>
-                      <option value="sold" <%= 'selected' if vol_status.to_s == 'sold' %>>Sold</option>
-                    </select>
-                  <% end %>
-                </div>
-              <% end %>
-
-            </div>
-
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+        <%= @title.presence || @series_name %>
+      </h1>
+      
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-600 pt-1">
+        <% if @author.present? %>
+          <div class="bg-slate-50 border border-slate-200/60 px-3 py-1 rounded-lg">
+            <span class="font-bold text-slate-400">Author:</span> <%= @author %>
+          </div>
+        <% end %>
+        <% if @publisher.present? %>
+          <div class="bg-slate-50 border border-slate-200/60 px-3 py-1 rounded-lg">
+            <span class="font-bold text-slate-400">Publisher:</span> <%= @publisher %>
           </div>
         <% end %>
       </div>
+    </div>
 
-    <% else %>
-      <div class="text-center py-12 bg-white rounded-2xl border border-slate-100 p-6">
-        <p class="text-3xl mb-2">📦</p>
-        <h3 class="font-bold text-slate-700 text-base">No volumes found</h3>
-        <p class="text-slate-400 text-xs max-w-xs mx-auto mt-1">
-          Unable to fetch volumes for this series from the Rakuten API.
-        </p>
+    <div class="shrink-0">
+      <div class="bg-indigo-50/50 border border-indigo-100/80 px-5 py-3.5 rounded-2xl text-center">
+        <span class="block text-2xl font-black text-indigo-600"><%= @volumes.to_a.size %></span>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Volumes Found</span>
       </div>
-    <% end %>
+    </div>
   </div>
+
+  <%# Volumes Grid %>
+  <% if @volumes.present? %>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <% @volumes.each do |volume| %>
+        <% vol_title  = volume[:title] || volume["title"] %>
+        <% vol_img    = volume[:image_url] || volume["image_url"] %>
+        <% vol_num    = (volume[:volume_number] || volume["volume_number"]).to_i %>
+        <% vol_date   = volume[:release_date] || volume["release_date"] %>
+        <% vol_id     = volume[:id] || volume["id"] %>
+        <% vol_isbn   = volume[:isbn] %>
+        
+        <% raw_status = volume[:book_status] || volume["book_status"] || volume[:status] || volume["status"] %>
+        <% vol_status = raw_status.present? ? raw_status.to_s.downcase.to_sym : nil %>
+        <% is_in_bookshelf = vol_status.present? %>
+        
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-2.5 flex flex-col justify-between transition-all duration-200 group relative shadow-xs"
+             <% unless is_in_bookshelf %>
+               @click="toggleVolume(<%= vol_num %>, false)"
+               :class="selectedVolumes.includes('<%= vol_num %>') ? 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/20 shadow-md' : 'hover:shadow-md cursor-pointer'"
+             <% end %>>
+
+          <div class="w-full aspect-[2/3] bg-slate-100 rounded-xl overflow-hidden mb-2.5 relative flex items-center justify-center border border-slate-100">
+            <% if vol_img.present? %>
+              <img src="<%= vol_img %>" alt="<%= vol_title %>" class="w-full h-full object-cover <%= 'group-hover:scale-105' unless is_in_bookshelf %> transition-transform duration-300">
+            <% else %>
+              <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center bg-slate-50">
+                <span class="text-xs font-medium">No Image</span>
+              </div>
+            <% end %>
+
+            <% if is_in_bookshelf %>
+              <% case vol_status %>
+              <% when :owned %>
+                <div class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">✓ Owned</div>
+              <% when :wishlist %>
+                <div class="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">★ Wishlist</div>
+              <% when :ignored %>
+                <div class="absolute top-2 right-2 bg-slate-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">✕ Ignored</div>
+              <% when :sold %>
+                <div class="absolute top-2 right-2 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">$ Sold</div>
+              <% else %>
+                <div class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">✓ Collected</div>
+              <% end %>
+            <% else %>
+              <div class="absolute top-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all duration-200"
+                   :class="selectedVolumes.includes('<%= vol_num %>') ? 'bg-indigo-600 text-white scale-100' : 'bg-white/90 text-transparent scale-90'">
+                ✓
+              </div>
+            <% end %>
+          </div>
+
+          <div class="flex flex-col justify-between flex-grow space-y-1.5">
+            <div class="flex items-center justify-between gap-1">
+              <% if vol_num > 0 %>
+                <span class="bg-indigo-50 text-indigo-700 border border-indigo-100/80 font-extrabold text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
+                  VOL <%= vol_num %>
+                </span>
+              <% else %>
+                <span class="bg-slate-100 text-slate-600 font-medium text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
+                  Special
+                </span>
+              <% end %>
+
+              <%# Hidden on mobile, visible on tablet/desktop (sm+) %>
+              <% if vol_id.present? %>
+                <span class="hidden sm:inline-block text-[10px] font-mono font-medium text-slate-400 truncate max-w-[105px]" title="ISBN: <%= vol_id %>">
+                  <%= vol_id %>
+                </span>
+              <% end %>
+
+            </div>
+
+            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight" title="<%= vol_title %>">
+              <%= vol_title %>
+            </h4>
+
+            <% if is_in_bookshelf && vol_id.present? %>
+              <div class="pt-2 border-t border-slate-100 mt-auto" @click.stop>
+                <%= form_with model: Book.new, url: book_path(vol_id), method: :patch, data: {turbo: false}, class: "w-full" do |f| %>
+                  <%= hidden_field_tag :redirect_to_series, true %>
+                  <%= hidden_field_tag :title, @title %>
+                  <%= hidden_field_tag :author, @author %>
+                  <%= hidden_field_tag :publisher, @publisher %>
+                  <%= hidden_field_tag :rakuten_genre_id, @rakuten_genre_id %>
+                  <%= hidden_field_tag :query, @query %>
+                  <input type="hidden" name="selected_volumes[][volume_number]" value="<%= vol_num %>">
+                  <input type="hidden" name="selected_volumes[][title]" value="<%= vol_title %>">
+                  <input type="hidden" name="selected_volumes[][image_url]" value="<%= vol_img %>">
+
+                  <select name="book[book_status]" 
+                          onchange="this.form.submit()" 
+                          class="w-full text-[11px] font-semibold border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                    <option value="owned" <%= 'selected' if vol_status.to_s == 'owned' %>>Owned</option>
+                    <option value="wishlist" <%= 'selected' if vol_status.to_s == 'wishlist' %>>Wishlist</option>
+                    <option value="ignored" <%= 'selected' if vol_status.to_s == 'ignored' %>>Ignored</option>
+                    <option value="sold" <%= 'selected' if vol_status.to_s == 'sold' %>>Sold</option>
+                  </select>
+                <% end %>
+              </div>
+            <% end %>
+
+          </div>
+
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
 </div>
