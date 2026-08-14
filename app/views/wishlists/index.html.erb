@@ -1,64 +1,105 @@
 <%# app/views/wishlists/index.html.erb %>
-<div class="space-y-6">
-  <h1 class="text-2xl font-bold text-slate-900">My Wishlist</h1>
+<div class="space-y-6 max-w-6xl mx-auto font-sans text-slate-800">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-black text-slate-900 tracking-tight">My Wishlist</h1>
+    <span class="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200/80 rounded-full">
+      <%= @wishlist_series.count %> Series Saved
+    </span>
+  </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <% @wishlist_series.each do |series| %>
-      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-        
-        <%# Header: Title & Series Type Badge %>
-        <div>
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-700 capitalize">
-              <%= series.series_type&.humanize %>
-            </span>
-            <span class="text-xs text-slate-500">
-              <%= series.books.count %> volumes
-            </span>
-          </div>
-          <h3 class="text-lg font-bold text-slate-800 line-clamp-1"><%= series.title %></h3>
-        </div>
+  <% if @wishlist_series.empty? %>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-400 space-y-2">
+      <p class="text-sm font-medium">Your wishlist is currently empty.</p>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <% @wishlist_series.each do |series| %>
+        <%# Determine cover image: explicit series cover image, or fallback to first book cover %>
+        <% cover_url = series.cover_image_url.presence || series.books.first&.image_url %>
 
-        <%# Form controls for Priority and Status %>
-        <%= form_with model: series, url: book_series_path(series), method: :patch, data: { controller: "auto-submit" }, class: "space-y-3 bg-slate-50 p-3 rounded-lg text-sm" do |f| %>
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between overflow-hidden transition-all hover:shadow-md">
           
-          <%# Priority Dropdown %>
-          <div class="flex items-center justify-between">
-            <%= f.label :wishlist_priority, "Priority:", class: "text-slate-600 font-medium" %>
-            <%= f.select :wishlist_priority, 
-                BookSeries.wishlist_priorities.keys.map { |k| [k.humanize, k] }, 
-                {}, 
-                onchange: "this.form.requestSubmit()",
-                class: "text-xs rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white" %>
+          <div class="p-4 flex gap-4">
+            <%# Cover Image Frame %>
+            <div class="w-24 h-36 shrink-0 bg-slate-100 rounded-xl overflow-hidden border border-slate-200/80 relative flex items-center justify-center">
+              <% if cover_url.present? %>
+                <img src="<%= cover_url %>" alt="<%= series.title %>" class="w-full h-full object-cover">
+              <% else %>
+                <div class="text-center p-2 text-slate-400">
+                  <span class="text-[10px] font-semibold block">No Cover</span>
+                </div>
+              <% end %>
+            </div>
+
+            <%# Series Info Header %>
+            <div class="flex flex-col justify-between flex-grow min-w-0">
+              <div>
+                <div class="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                  <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100/80">
+                    <%= series.series_type&.humanize || "Manga" %>
+                  </span>
+                  <span class="text-[10px] font-semibold text-slate-400">
+                    <%= series.books.count %> vol
+                  </span>
+                </div>
+                <h3 class="text-sm font-black text-slate-900 leading-snug line-clamp-2" title="<%= series.title %>">
+                  <%= series.title %>
+                </h3>
+              </div>
+
+              <% if series.author.present? %>
+                <p class="text-xs text-slate-500 truncate mt-1">
+                  <span class="font-medium text-slate-400">By:</span> <%= series.author %>
+                </p>
+              <% end %>
+            </div>
           </div>
 
-          <%# Series Status Dropdown %>
-          <div class="flex items-center justify-between">
-            <%= f.label :series_status, "Status:", class: "text-slate-600 font-medium" %>
-            <%= f.select :series_status, 
-                BookSeries.series_statuses.keys.map { |k| [k.humanize, k] }, 
-                {}, 
-                onchange: "this.form.requestSubmit()",
-                class: "text-xs rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white" %>
-          </div>
-        <% end %>
+          <%# Form controls for Priority and Status %>
+          <div class="px-4 pb-3">
+            <%= form_with model: series, url: book_series_path(series), method: :patch, class: "space-y-2 bg-slate-50/80 border border-slate-100 p-2.5 rounded-xl text-xs" do |f| %>
+              
+              <%# Priority Dropdown %>
+              <div class="flex items-center justify-between gap-2">
+                <%= f.label :wishlist_priority, "Priority:", class: "text-slate-600 font-semibold" %>
+                <%= f.select :wishlist_priority, 
+                    BookSeries.wishlist_priorities.keys.map { |k| [k.humanize, k] }, 
+                    {}, 
+                    onchange: "this.form.requestSubmit()",
+                    class: "text-[11px] font-medium rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 bg-white py-1 px-2" %>
+              </div>
 
-        <%# Actions (e.g. Move to Bookshelf or Delete) %>
-        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-            <%= button_to "Move to Bookshelf", 
-                book_series_path(series), 
+              <%# Series Status Dropdown %>
+              <div class="flex items-center justify-between gap-2">
+                <%= f.label :series_status, "Status:", class: "text-slate-600 font-semibold" %>
+                <%= f.select :series_status, 
+                    BookSeries.series_statuses.keys.map { |k| [k.humanize, k] }, 
+                    {}, 
+                    onchange: "this.form.requestSubmit()",
+                    class: "text-[11px] font-medium rounded-lg border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 bg-white py-1 px-2" %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# Actions Footer %>
+          <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <%= button_to book_series_path(series), 
                 method: :patch, 
                 params: { book_series: { in_wishlist: false } }, 
-                class: "text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer" %>
+                class: "text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer flex items-center gap-1" do %>
+              <span>+ Move to Bookshelf</span>
+            <% end %>
 
-            <%= button_to "Remove", 
-                book_series_path(series), 
+            <%= button_to book_series_path(series), 
                 method: :delete, 
-                data: { turbo_confirm: "Are you sure?" }, 
-                class: "text-xs font-semibold text-rose-500 hover:text-rose-600 cursor-pointer" %>
-        </div>
+                data: { turbo_confirm: "Remove #{series.title} from wishlist?" }, 
+                class: "text-xs font-semibold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer" do %>
+              <span>Remove</span>
+            <% end %>
+          </div>
 
-      </div>
-    <% end %>
-  </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 </div>
