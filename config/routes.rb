@@ -22,4 +22,6 @@ Rails.application.routes.draw do
   post "add_series_to_bookshelf", to: "book_series#create_from_search"
   post "add_series_to_wishlist", to: "wishlists#create_from_search"
 
+  resources :books, only: [:update]
+
 end

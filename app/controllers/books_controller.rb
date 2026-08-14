@@ -38,7 +38,20 @@ class BooksController < ApplicationController
   def update
     respond_to do |format|
       if @book.update(book_params)
-        format.html { redirect_to @book, notice: "Book was successfully updated.", status: :see_other }
+        format.html { 
+          if params[:redirect_to_series].present?
+            series = @book.book_series
+            redirect_to search_series_path(
+              title:            series&.title,
+              author:           series&.author,
+              publisher:        series&.publication || params[:publisher],
+              rakuten_genre_id: series&.rakuten_genre_id,
+              query:            params[:query]
+            ), notice: "Updated #{@book.volume_title || 'volume'} status to #{@book.book_status.humanize}.", status: :see_other
+          else
+            redirect_to @book, notice: "Book was successfully updated.", status: :see_other 
+          end
+        }
         format.json { render :show, status: :ok, location: @book }
       else
         format.html { render :edit, status: :unprocessable_content }

@@ -200,9 +200,10 @@
               </h4>
 
               <%# INDIVIDUAL STATUS DROPDOWN %>
-              <% if is_in_bookshelf %>
+              <% if is_in_bookshelf && vol_id.present? %>
                 <div class="pt-2 border-t border-slate-100 mt-auto" @click.stop>
-                  <%= form_with url: add_volumes_book_series_path(@series_id || 0), method: :post, data: { turbo: false }, class: "w-full" do |f| %>
+                  <%= form_with model: Book.new, url: book_path(vol_id), method: :patch, data: {turbo: false}, class: "w-full" do |f| %>
+                    <%= hidden_field_tag :redirect_to_series, true %>
                     <%= hidden_field_tag :title, @title %>
                     <%= hidden_field_tag :author, @author %>
                     <%= hidden_field_tag :publisher, @publisher %>
@@ -213,13 +214,13 @@
                     <input type="hidden" name="selected_volumes[][image_url]" value="<%= vol_img %>">
 
                     <label class="text-[10px] font-semibold text-slate-400 block mb-1">Status:</label>
-                    <select name="book_status" 
+                    <select name="book[book_status]" 
                             onchange="this.form.submit()" 
                             class="w-full text-xs font-medium border border-slate-200 rounded-md px-2 py-1 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                      <option value="owned" <%= 'selected' if vol_status == :owned %>>Owned</option>
-                      <option value="wishlist" <%= 'selected' if vol_status == :wishlist %>>Wishlist</option>
-                      <option value="ignored" <%= 'selected' if vol_status == :ignored %>>Ignored</option>
-                      <option value="sold" <%= 'selected' if vol_status == :sold %>>Sold</option>
+                      <option value="owned" <%= 'selected' if vol_status.to_s == 'owned' %>>Owned</option>
+                      <option value="wishlist" <%= 'selected' if vol_status.to_s == 'wishlist' %>>Wishlist</option>
+                      <option value="ignored" <%= 'selected' if vol_status.to_s == 'ignored' %>>Ignored</option>
+                      <option value="sold" <%= 'selected' if vol_status.to_s == 'sold' %>>Sold</option>
                     </select>
                   <% end %>
                 </div>
