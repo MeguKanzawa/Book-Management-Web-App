@@ -184,9 +184,9 @@
               <% end %>
 
               <%# Hidden on mobile, visible on tablet/desktop (sm+) %>
-              <% if vol_id.present? %>
+              <% if vol_isbn.present? %>
                 <span class="hidden sm:inline-block text-[10px] font-mono font-medium text-slate-400 truncate max-w-[105px]" title="ISBN: <%= vol_id %>">
-                  <%= vol_id %>
+                  <%= vol_isbn %>
                 </span>
               <% end %>
 

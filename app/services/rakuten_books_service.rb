@@ -55,7 +55,14 @@ def self.search_parent_series(query)
       p rakuten_genre_id
 
       title = raw_title.gsub(/(?:[\s(（・:：]*(?:Vol\.|巻|第|#)?\s*\d+.*$)|[\s(（・:：]*(?:全巻)?セット.*$/i, '').strip
-      series_name = item["seriesName"].presence || (title.present? ? title : raw_title)
+      base_title = extract_series_title(raw_title)
+      series_name = item["seriesName"].presence || base_title
+
+      p title
+      p base_title
+      p series_name
+
+      p parse_title_and_subtitle(raw_title)
 
       author    = item["author"] || "Unknown Author"
       publisher = item["publisherName"] || "Unknown Publisher"
@@ -67,6 +74,9 @@ def self.search_parent_series(query)
       # Grouping key ensures unique series per genre + author + publisher
       group_key = "#{normalized_author}_#{normalized_publisher}_#{rakuten_genre_id}_#{title}"
       
+      p group_key
+      p "\n"
+
       image_url = item["largeImageUrl"] || item["mediumImageUrl"]
       image_url = nil if image_url&.include?("nowprinting")
 
@@ -160,7 +170,6 @@ end
           
           p title
           p vol_title
-          p item['isbn']
           p "/n"
 
           vol_num = extract_volume_number(vol_title, title) || 0
@@ -194,9 +203,6 @@ end
         break
       end
     end
-
-    # all_volumes.uniq { |v| v[:title] }.sort_by { |v| v[:volume_number] }
-    
 
     p all_volumes.size
     p "finished fetch_volumes"
@@ -244,6 +250,58 @@ end
     cleaned_text = normalize_text(text)
 
     vol_num ? "#{cleaned_text}#{vol_num}" : cleaned_text
+  end
+
+  def self.parse_title_and_subtitle(raw_title)
+    return { series_title: "Untitled", subtitle: nil } if raw_title.blank?
+
+    title = raw_title.dup
+
+    # 1. Strip generic box/set tags
+    title.gsub!(/(?:[\s\u3000(（・:：\-\─]*(?:全巻)?セット.*$)/i, '')
+
+    series_title = title
+    subtitle = nil
+
+    # 2. Pattern A: Explicit volume markers or trailing numbers
+    # Matches " Vol.3", " 3巻", "(3)", or numbers directly attached at the end like "尽くします。3"
+    volume_regex = /(?:[\s\u3000(（\[［・:：\-\─]+(?:Vol\.|巻|第|#)?\s*\d+.*$)|(?:(?:Vol\.|巻|第|#)\s*\d+.*$)|(?:\d+\s*(?:巻|話)?$)/i
+
+    if (match = title.match(/^(.*?)(#{volume_regex})/i)) && match[1].strip.length >= 2
+      series_title = match[1]
+      subtitle     = match[2].gsub(/^[\s\u3000:：\-\─(（\[［]+|[\s\u3000)）\]］]+$/, '')
+
+    # 3. Pattern B: Subtitled series separated by spaces, colons, dashes, or Japanese brackets
+    elsif title.match?(/[\s\u3000:：\-\─【】「」]/)
+      parts = title.split(/[\s\u3000:：\-\─【】「」]+/, 2)
+
+      if parts.first.present? && parts.first.length >= 2
+        series_title = parts.first
+        subtitle     = parts.last
+      end
+    end
+
+    {
+      series_title: series_title.strip,
+      subtitle: subtitle.presence&.strip
+    }
+  end
+
+  def self.extract_series_title(raw_title)
+    return "Untitled" if raw_title.blank?
+
+    # Strip explicit volume markers (Vol.1, 1巻, 第1話, #1, etc.)
+    clean = raw_title.gsub(/(?:[\s(（・:：\-\─]*(?:Vol\.|巻|第|#)?\s*\d+.*$)|[\s(（・:：\-\─]*(?:全巻)?セット.*$/i, '').strip
+
+    # Handle Subtitled Series (e.g., "探偵チームKZ事件ノート ひとり時間は知っている")
+    # If a title has spaces, colons, or dashes followed by Japanese subtitle text, split and take the first segment
+    if clean.match?(/[\s :：\-\─]/)
+      parts = clean.split(/[\s :：\-\─]+/)
+      # Keep primary series name (first part) if it's substantial (>= 2 chars)
+      clean = parts.first if parts.first.present? && parts.first.length >= 2
+    end
+
+    clean.strip
   end
 
   def self.extract_volume_number(title, series_title)
