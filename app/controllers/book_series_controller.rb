@@ -87,7 +87,7 @@ class BookSeriesController < ApplicationController
         b.image_url = vol[:image_url]
         b.book_status = target_status
         b.isbn = vol[:isbn]
-        book.save!
+        b.save!
       end
     end
 
@@ -114,8 +114,10 @@ class BookSeriesController < ApplicationController
 
   def update_metadata
     series = BookSeries.find(params[:id])
-    if series.update(series_params)
-      redirect_back fallback_location: root_path, notice: "Series updated!"
+    if series.update(book_series_params)
+      redirect_back fallback_location: root_path, notice: "Series updated!", status: :see_other
+    else
+      redirect_back fallback_location: root_path, alert: "Failed to update series."
     end
   end
 

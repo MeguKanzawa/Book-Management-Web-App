@@ -26,7 +26,7 @@ class BookSeries < ApplicationRecord
       :art_book
     elsif gid.start_with?("001008")
       :magazine
-    elsif gid.start_with?("001002", "001003", "001004", "001017")
+    elsif gid.start_with?("001002", "001003", "001004", "001017", "00102")
       :book
     else
       :other
