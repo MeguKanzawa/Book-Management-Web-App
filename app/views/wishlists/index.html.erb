@@ -45,8 +45,17 @@
 
         <%# Actions (e.g. Move to Bookshelf or Delete) %>
         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-          <%= button_to "Move to Bookshelf", book_series_path(series, book_series: { in_wishlist: false }), method: :patch, class: "text-xs font-semibold text-emerald-600 hover:text-emerald-700" %>
-          <%= button_to "Remove", book_series_path(series), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-xs font-semibold text-rose-500 hover:text-rose-600" %>
+            <%= button_to "Move to Bookshelf", 
+                book_series_path(series), 
+                method: :patch, 
+                params: { book_series: { in_wishlist: false } }, 
+                class: "text-xs font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer" %>
+
+            <%= button_to "Remove", 
+                book_series_path(series), 
+                method: :delete, 
+                data: { turbo_confirm: "Are you sure?" }, 
+                class: "text-xs font-semibold text-rose-500 hover:text-rose-600 cursor-pointer" %>
         </div>
 
       </div>

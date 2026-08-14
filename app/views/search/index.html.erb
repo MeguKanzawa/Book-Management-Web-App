@@ -27,8 +27,13 @@
         <% s_img       = series[:image_url] || series["image_url"] %>
         <% s_genre     = series[:rakuten_genre_id] || series["rakuten_genre_id"] %>
 
-        <% existing_record = @existing_series_map[s_title] %>
+        <% norm_author = s_author.gsub(/\s+/, "") %>
 
+        <%# 1. Strict 3-point exact match: Title + Author + Genre %>
+        <% existing_record = @existing_series_map[[s_title, norm_author, s_genre]] %>
+
+        <%# 2. Strict fallback: Match Title + Author (ignoring genre if rakuten_genre_id was nil on DB record) %>
+        <% existing_record ||= @existing_series_map.values.find { |s| s.title == s_title && s.author.to_s.gsub(/\s+/, "") == norm_author } %>
         <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex gap-4 items-start">
           
           <%# Cover Image %>
@@ -87,6 +92,7 @@
                 <% end %>
               <% else %>
                 <%= form_with url: add_series_to_bookshelf_path, method: :post, class: "inline" do %>
+                  <%= hidden_field_tag :query, params[:query] %>
                   <%= hidden_field_tag :title, s_title %>
                   <%= hidden_field_tag :author, s_author %>
                   <%= hidden_field_tag :publisher, s_publisher %>
@@ -99,6 +105,7 @@
                 <% end %>
 
                 <%= form_with url: add_series_to_wishlist_path, method: :post, class: "inline" do %>
+                  <%= hidden_field_tag :query, params[:query] %>
                   <%= hidden_field_tag :title, s_title %>
                   <%= hidden_field_tag :author, s_author %>
                   <%= hidden_field_tag :publisher, s_publisher %>

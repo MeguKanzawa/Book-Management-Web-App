@@ -3,13 +3,21 @@ class SearchController < ApplicationController
     if params[:query].present?
       @found_series_by_genre = RakutenBooksService.search_parent_series(params[:query])
 
-      found_titles = @found_series_by_genre.values.map { |s| s[:title] || s["title"] }
+      found_titles = @found_series_by_genre.values.map { |s| s[:title] || s["title"] }.compact.uniq
 
-      @existing_series_map = BookSeries.where(title: found_titles).index_by(&:title)
+      # Fetch existing series
+      existing_records = BookSeries.includes(:books).where(title: found_titles)
+
+      # Build a strict composite key: [title, normalized_author, genre_id]
+      @existing_series_map = existing_records.index_by do |s|
+        norm_author = s.author.to_s.gsub(/\s+/, "").strip
+        [s.title.to_s.strip, norm_author, s.rakuten_genre_id.to_s.strip]
+      end
     else
       @found_series_by_genre = {}
       @existing_series_map = {}
     end
+
     session[:query] = params[:query]
     @query = session[:query]
   end
