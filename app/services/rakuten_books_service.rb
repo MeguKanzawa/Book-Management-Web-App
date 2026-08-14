@@ -54,15 +54,18 @@ def self.search_parent_series(query)
 
       p rakuten_genre_id
 
+      # Clean the genre ID to take only the primary genre code if multiple are slash-delimited
+      rakuten_genre_id = rakuten_genre_id.to_s.split('/').first
+
       title = raw_title.gsub(/(?:[\s(（・:：]*(?:Vol\.|巻|第|#)?\s*\d+.*$)|[\s(（・:：]*(?:全巻)?セット.*$/i, '').strip
-      base_title = extract_series_title(raw_title)
+      # base_title = extract_series_title(raw_title)
+      # series_name = item["seriesName"].presence || base_title
+
+      
+
+      parsed = parse_title_and_subtitle(raw_title)
+      base_title  = parsed[:series_title]
       series_name = item["seriesName"].presence || base_title
-
-      p title
-      p base_title
-      p series_name
-
-      p parse_title_and_subtitle(raw_title)
 
       author    = item["author"] || "Unknown Author"
       publisher = item["publisherName"] || "Unknown Publisher"
@@ -72,8 +75,11 @@ def self.search_parent_series(query)
       # normalized_series    = normalize_text(series_name)
       
       # Grouping key ensures unique series per genre + author + publisher
-      group_key = "#{normalized_author}_#{normalized_publisher}_#{rakuten_genre_id}_#{title}"
+      group_key = "#{normalized_author}_#{normalized_publisher}_#{rakuten_genre_id}_#{base_title}"
       
+      p title
+      p base_title
+      p series_name
       p group_key
       p "\n"
 
@@ -87,7 +93,7 @@ def self.search_parent_series(query)
         end
       else
         series_map[group_key] = {
-          title: title,
+          title: base_title,
           series_id: group_key,
           series_name: series_name,
           author: author,
@@ -172,6 +178,7 @@ end
           p vol_title
           p "/n"
 
+          parsed = parse_title_and_subtitle(vol_title)
           vol_num = extract_volume_number(vol_title, title) || 0
           next if vol_num < 0 || vol_num > 500
           # p "passed volume number check"
@@ -187,6 +194,7 @@ end
             id: vol_id,
             isbn: isbn,
             title: normalized_volume,
+            subtitle: parsed[:subtitle],
             volume_number: vol_num,
             image_url: image_url,
             release_date: item["releaseDate"]

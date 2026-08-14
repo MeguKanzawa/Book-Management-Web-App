@@ -130,6 +130,7 @@
         <% vol_date   = volume[:release_date] || volume["release_date"] %>
         <% vol_id     = volume[:id] || volume["id"] %>
         <% vol_isbn   = volume[:isbn] %>
+        <% vol_subtitle = volume[:subtitle] %>
         
         <% raw_status = volume[:book_status] || volume["book_status"] || volume[:status] || volume["status"] %>
         <% vol_status = raw_status.present? ? raw_status.to_s.downcase.to_sym : nil %>
@@ -177,9 +178,13 @@
                 <span class="bg-indigo-50 text-indigo-700 border border-indigo-100/80 font-extrabold text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
                   VOL <%= vol_num %>
                 </span>
+              <% elsif vol_subtitle.present? %>
+                <span class="bg-violet-50 text-violet-700 border border-violet-100/80 font-extrabold text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
+                  STORY
+                </span>
               <% else %>
                 <span class="bg-slate-100 text-slate-600 font-medium text-[10px] px-2 py-0.5 rounded inline-block shrink-0">
-                  Special
+                  SPECIAL
                 </span>
               <% end %>
 
