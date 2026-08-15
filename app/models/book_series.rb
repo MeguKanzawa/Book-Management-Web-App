@@ -57,4 +57,8 @@ class BookSeries < ApplicationRecord
     series.save
     series
   end
+
+  def series_status
+    read_attribute(:series_status).presence || "unknown"
+  end
 end

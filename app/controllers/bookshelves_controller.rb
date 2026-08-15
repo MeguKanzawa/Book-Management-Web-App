@@ -16,4 +16,12 @@ class BookshelvesController < ApplicationController
     @series_list = BookSeries.in_bookshelf.where(series_type: [:art_book, :magazine, :other]).includes(:books)
     render :show_bookshelf
   end
+
+  private
+  def format_series_payload(scope)
+    scope.as_json(
+      include: :books,
+      methods: [:series_status] # Explicitly call the ActiveRecord enum/getter method
+    ).to_json
+  end
 end

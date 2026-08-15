@@ -59,6 +59,8 @@ class SearchController < ApplicationController
       @publisher
     )
 
+    @cover_image_url = params[:cover_image_url].presence || @series_record&.cover_image_url.presence || first_vol_img
+
     # 3. Match DB books with STRICT guard conditions
     if @series_record
       # Index books strictly by populated values
