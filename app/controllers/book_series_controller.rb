@@ -65,12 +65,27 @@ class BookSeriesController < ApplicationController
   end
 
   def create_from_search
-    @series = BookSeries.find_or_create_from_rakuten(params, in_wishlist: false)
+    in_wishlist_flag = ActiveModel::Type::Boolean.new.cast(params[:in_wishlist])
+    @series = BookSeries.find_or_create_from_rakuten(params, in_wishlist: in_wishlist_flag)
 
     if @series.persisted?
-      redirect_back fallback_location: root_path, notice: "Added #{@series.title} to Bookshelf!"
+      # Ensure in_wishlist is updated if record existed previously
+      if @series.in_wishlist != in_wishlist_flag
+        @series.update(in_wishlist: in_wishlist_flag)
+      end
+
+      notice_msg = @series.in_wishlist? ? "Added #{@series.title} to Wishlist!" : "Added #{@series.title} to Bookshelf!"
+
+      redirect_to search_series_path(
+        series_id:        @series.id,
+        title:            @series.title,
+        author:           params[:author] || @series.author,
+        publisher:        params[:publisher] || @series.publication,
+        rakuten_genre_id: params[:rakuten_genre_id] || @series.rakuten_genre_id,
+        query:            params[:query]
+      ), notice: notice_msg, status: :see_other
     else
-      redirect_back fallback_location: root_path, alert: "Could not add to Bookshelf."
+      redirect_back fallback_location: root_path, alert: "Could not add series."
     end
   end
 

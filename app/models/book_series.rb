@@ -52,6 +52,7 @@ class BookSeries < ApplicationRecord
 
     # Set default wishlist priority if adding to wishlist for the first time
     series.wishlist_priority ||= :medium if in_wishlist
+    series.in_wishlist = in_wishlist
 
     series.save
     series
