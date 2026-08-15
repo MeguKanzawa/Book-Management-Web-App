@@ -1,6 +1,6 @@
 class BookSeries < ApplicationRecord
   has_many :books, dependent: :destroy
-  enum :series_status, { ongoing: 1, completed: 2, unknown: 3 }
+  enum :series_status, { ongoing: 1, completed: 2, unknown: 3 }, default: :ongoing
   enum :series_type, { book: 1, manga: 2, art_book: 3, magazine: 4, other: 5 }, prefix: true
   enum :genre, { shojo: 1, shonen: 2, bl: 3, light_novel: 4, bunko: 5, other: 6 }, prefix: true
   enum :tracking_status, { actively_hunting: 1, passive_watch: 2, on_standby: 3, someday: 4, complete: 5 }
@@ -56,9 +56,5 @@ class BookSeries < ApplicationRecord
 
     series.save
     series
-  end
-
-  def series_status
-    read_attribute(:series_status).presence || "unknown"
   end
 end
